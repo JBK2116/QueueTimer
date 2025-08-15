@@ -1,0 +1,14 @@
+{
+  "editor.formatOnSave": true,
+  "ruff.organizeImports": true,
+  "ruff.fixAll": true,
+  "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "always"
+  },
+  "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[css]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}

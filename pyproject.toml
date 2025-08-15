@@ -1,0 +1,200 @@
+[project]
+name = "QueueTimer"
+version = "0.1.0"
+description = "A minimalist and efficient time tracker created for managing assignments!"
+readme = "README.md"
+authors = [
+    {name = "Jovani", email = "jovani.badinga7@gmail.com"},
+]
+github = "https://github.com/JBK2116/QueueTimer"
+requires-python = ">=3.12"
+
+
+dependencies = [
+    "django>=5.2.5",
+    "djangorestframework>=3.16.1",
+    "psycopg2-binary>=2.9.10",
+    "python-dotenv>=1.1.1",
+]
+
+[dependency-groups]
+test = [
+    "pytest>=8.4.1",
+    "pytest-django>=4.11.1",
+]
+lint = [
+    "basedpyright>=1.31.2",
+    "django-types>=0.22.0",
+    "ruff>=0.12.9",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "yourproject.settings"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+    ]
+testpaths = "tests"
+markers = [
+    "exception: Only run expected exceptions",
+    "finish: Only run finish tests",
+    "smoke: Small subset of all tests",
+    "num_items: Number of items to be pre-filled for the items_db fixture"
+    ]
+
+[tool.ruff]
+line-length = 99
+target-version = "py312"
+
+[tool.ruff.lint]
+# E: pycodestyle errors
+# F: pyflakes
+# I: isort
+# B: flake8-bugbear
+select = ["E", "F", "I", "B"]
+ignore = []
+fixable = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = 60
+
+[tool.basedpyright]
+# Type checking mode - "recommended" enables strict type checking with warnings
+typeCheckingMode = "recommended"
+
+# Python version requirement
+pythonVersion = "3.12"
+
+# Include/exclude paths
+include = ["src"]
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.pytest_cache",
+    "**/.*",
+    "dist",
+    "build"
+]
+
+# Ignore paths for diagnostics suppression
+ignore = []
+
+# Core type evaluation settings
+strictListInference = true
+strictDictionaryInference = true
+strictSetInference = true
+strictParameterNoneValue = true
+analyzeUnannotatedFunctions = true
+strictGenericNarrowing = true
+
+# Disable discouraged features
+enableTypeIgnoreComments = false
+enableReachabilityAnalysis = true
+
+# Fail on warnings in CI/production
+failOnWarnings = true
+
+# Type stub configuration
+reportMissingTypeStubs = "warning"
+
+# Import and module diagnostics
+reportMissingImports = "error"
+reportMissingModuleSource = "error"
+reportImportCycles = "error"
+reportWildcardImportFromLibrary = "error"
+reportPrivateImportUsage = "warning"
+reportPrivateLocalImportUsage = "warning"
+reportImplicitRelativeImport = "error"
+reportShadowedImports = "warning"
+
+# Type compatibility diagnostics
+reportGeneralTypeIssues = "error"
+reportPropertyTypeMismatch = "warning"
+reportInvalidTypeForm = "error"
+reportInvalidTypeArguments = "error"
+reportAssignmentType = "error"
+reportArgumentType = "error"
+reportReturnType = "error"
+reportInconsistentOverload = "error"
+reportIncompatibleMethodOverride = "error"
+reportIncompatibleVariableOverride = "error"
+
+# Optional type diagnostics
+reportOptionalSubscript = "error"
+reportOptionalMemberAccess = "error"
+reportOptionalCall = "error"
+reportOptionalIterable = "error"
+reportOptionalContextManager = "error"
+reportOptionalOperand = "error"
+
+# Function/class annotation diagnostics
+reportMissingParameterType = "warning"
+reportUnknownParameterType = "warning"
+reportUnknownArgumentType = "warning"
+reportUnknownVariableType = "warning"
+reportUnknownMemberType = "warning"
+reportUntypedFunctionDecorator = "warning"
+reportUntypedClassDecorator = "warning"
+reportUntypedBaseClass = "warning"
+
+# Code quality diagnostics
+reportUnusedImport = "warning"
+reportUnusedClass = "warning"
+reportUnusedFunction = "warning"
+reportUnusedVariable = "warning"
+reportUnusedParameter = "warning"
+reportDuplicateImport = "warning"
+reportConstantRedefinition = "error"
+reportRedeclaration = "warning"
+reportDeprecated = "warning"
+
+# Unsafe patterns
+reportUnsafeMultipleInheritance = "error"
+reportInvalidCast = "error"
+reportCallInDefaultInitializer = "warning"
+reportPossiblyUnboundVariable = "error"
+reportUnboundVariable = "error"
+reportUndefinedVariable = "error"
+
+# Code style and best practices
+reportPrivateUsage = "warning"
+reportSelfClsParameterName = "error"
+reportImplicitStringConcatenation = "warning"
+reportInvalidStringEscapeSequence = "error"
+reportAssertAlwaysTrue = "error"
+reportUnnecessaryIsInstance = "warning"
+reportUnnecessaryCast = "warning"
+reportUnnecessaryComparison = "warning"
+reportUnnecessaryContains = "warning"
+reportUnnecessaryTypeIgnoreComment = "warning"
+reportUnusedCallResult = "warning"
+reportUnusedCoroutine = "warning"
+reportUnusedExpression = "warning"
+
+# Abstract class handling
+reportAbstractUsage = "error"
+reportImplicitAbstractClass = "error"
+reportInvalidAbstractMethod = "warning"
+reportMissingSuperCall = "error"
+
+# Class/instance variable diagnostics
+reportUninitializedInstanceVariable = "error"
+reportUnannotatedClassAttribute = "warning"
+reportIncompatibleUnannotatedOverride = "none"
+
+# basedpyright exclusive features
+reportAny = "information"
+reportExplicitAny = "information"
+reportIgnoreCommentWithoutRule = "warning"
+
+# Match statement diagnostics
+reportMatchNotExhaustive = "warning"
+
+# Unreachable code detection
+reportUnreachable = "warning"
