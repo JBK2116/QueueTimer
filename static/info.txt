@@ -1,0 +1,6 @@
+This static folder will serve as the frontend in production.
+For now it has to be left like this in order for me to 
+properly be able to develop the app.
+
+The root of this static folder will have `index.html`
+

@@ -1,0 +1,6 @@
+This static/auth/ folder will store the auth endpoints which include:
+auth/login
+auth/register
+auth/forgot-password 
+auth/reset-password
+auth/account

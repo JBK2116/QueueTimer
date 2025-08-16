@@ -1,0 +1,3 @@
+This is a temporary auth folder for development
+Later on in prod, all contents in this folder will
+be moved into the static/auth/ directory.
