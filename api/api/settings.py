@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +19,7 @@ _ = load_dotenv()  # load env variables from .env
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = load_dotenv("DJANGO_SECRET_KEY")
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # ! SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -29,7 +29,10 @@ ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
-
+MY_APPS = [
+    "authentication",
+    "timer",
+]
 INSTALLED_APPS = [
     "rest_framework",
     "django.contrib.admin",
@@ -38,6 +41,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "corsheaders",
+    *MY_APPS
 ]
 
 MIDDLEWARE = [
@@ -48,8 +53,13 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
 ]
-
+# ! In prod disable allow all and specify frontend server in allowed origins
+CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ALLOWED_ORIGINS = [
+#     "",
+# ]
 ROOT_URLCONF = "api.urls"
 
 TEMPLATES: list[dict[str, Any]] = [
@@ -72,15 +82,14 @@ WSGI_APPLICATION = "api.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": load_dotenv("DB_NAME"),
-        "USER": load_dotenv("DB_USER"),
-        "PASSWORD": load_dotenv("DB_PASSWORD"),
-        "HOST": load_dotenv("DB_HOST"),
-        "PORT": load_dotenv("DB_PORT"),
+        "NAME": os.getenv("DB_NAME"),
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "HOST": os.getenv("DB_HOST"),
+        "PORT": os.getenv("DB_PORT"),
     }
 }
 
@@ -103,7 +112,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-AUTH_USER_FIELD = "auth.CustomUser"
+AUTH_USER_MODEL = "authentication.CustomUser"
 
 
 # Internationalization
