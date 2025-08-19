@@ -1,0 +1,26 @@
+{
+ "editor.defaultFormatter": "esbenp.prettier-vscode",
+ "[javascript]": { "editor.formatOnSave": true },
+ "[json]": { "editor.formatOnSave": true },
+ "[python]": {
+   "editor.defaultFormatter": "charliermarsh.ruff",
+   "editor.formatOnSave": true
+ },
+
+ "better-comments.tags": [
+   { "tag": "!", "color": "#FF2D00", "label": "WARNING" },
+   { "tag": "*", "color": "#FFD700", "label": "HIGHLIGHT" },
+   { "tag": "TODO", "color": "#00BFFF", "label": "TODO" },
+   { "tag": "FIXME", "color": "#FF0000", "label": "FIXME" },
+   { "tag": "NOTE", "color": "#00FF00", "label": "NOTE" },
+   { "tag": "?", "color": "#B2B2B2", "label": "QUESTION" }
+ ],
+ "python.linting.enabled": true,
+ "python.linting.ruffEnabled": true,
+ "python.linting.lintOnSave": true,
+ "python.linting.enabledWithoutWorkspace": true,
+ "editor.codeActionsOnSave": {
+   "source.fixAll": "always"
+ },
+ "editor.formatOnSave": true
+}

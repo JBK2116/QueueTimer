@@ -1,0 +1,70 @@
+[project]
+name = "QueueTimer"
+version = "0.1.0"
+description = "QueueTimer SPA Application"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    {name = "Jovani Badinga", email = "jovani.badinga7@gmail.com"},
+]
+
+dependencies = [
+    "psycopg2-binary>=2.9.10",
+    "python-dotenv>=1.1.1",
+]
+
+[dependency-groups]
+dev_test = [    
+    "pytest>=8.4.1",
+]
+dev_lint = [
+    "mypy>=1.17.1",
+    "ruff>=0.12.9",
+]
+
+[project.urls]
+Homepage = "Coming Soon"
+Repository = "https://github.com/JBK2116/QueueTimer"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::DeprecationWarning"
+]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+ignore = []
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = false
+docstring-code-line-length = "dynamic"
+
+[tool.ruff.lint.pydocstyle]
+# Enforce Google-style docstrings.
+convention = "google"
+
+[tool.mypy]
+python_version = "3.12"
+
+ignore_missing_imports = true
+follow_imports = "silent"
+warn_unused_configs = true
+
+disallow_untyped_defs = true
+disallow_incomplete_defs = false
+check_untyped_defs = true
+warn_return_any = true
+warn_unreachable = true
+no_implicit_optional = true
+
