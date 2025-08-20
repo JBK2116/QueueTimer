@@ -17,7 +17,9 @@ class BaseClass(Base):
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+    updated_at = Column(
+        DateTime(timezone=True), onupdate=func.now(), nullable=False, default=func.now()
+    )
 
 
 class PublicUser(BaseClass):
@@ -26,19 +28,30 @@ class PublicUser(BaseClass):
         String(length=100), nullable=False
     )  # timezone str received from frontend
     token = Column(
-        String(length=36), nullable=False
+        String(length=36), nullable=False, unique=True
     )  # stores auto generated uuid4 token
+    token_expiry_time = Column(
+        DateTime(timezone=True), nullable=False
+    )  # Calculated prior to object creation
+    assignments = relationship(
+        "Assignment", back_populates="user", cascade="all, delete"
+    )
 
 
 class Assignment(BaseClass):
     __tablename__ = "assignments"
     title = Column(String(length=50), nullable=False)
-    max_duration = Column(Integer)  # In Minutes
+    max_duration = Column(Integer, nullable=False)  # In Minutes
     is_started = Column(Boolean, default=False, nullable=False)
     is_paused = Column(Boolean, default=False, nullable=False)
     is_complete = Column(Boolean, default=False, nullable=False)
+    user_id = Column(Integer, ForeignKey("public_users.id"), nullable=False)
+    user = relationship("PublicUser", back_populates="assignments")
     assignment_statistics = relationship(
-        "AssignmentStatistics", uselist=False, back_populates="assignment"
+        "AssignmentStatistics",
+        uselist=False,
+        back_populates="assignment",
+        cascade="all, delete",
     )
 
     @validates("title")
@@ -62,5 +75,7 @@ class AssignmentStatistic(BaseClass):
     elapsed_time = Column(Integer)  # In Seconds
     end_time = Column(DateTime(timezone=True), nullable=True)
     pause_count = Column(Integer, default=0)
-    assignment_id = Column(Integer, ForeignKey("assignments.id"), nullable=False)
+    assignment_id = Column(
+        Integer, ForeignKey("assignments.id"), nullable=False, unique=True
+    )
     assignment = relationship("Assignment", back_populates="assignment_statistics")
