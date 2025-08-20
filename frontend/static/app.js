@@ -1,17 +1,18 @@
 /**
  * QueueTimer Production Client
  * Production-ready JavaScript for assignment timer management
- * Features: Proper error handling, loading states, memory management, UX improvements
+ * Features: User ID management, proper error handling, loading states, memory management, UX improvements
  */
 
 class QueueTimerApp {
   constructor() {
     this.config = {
-      baseURL: "http://localhost:8000/api/assignments",
+      baseURL: "http://localhost:8000/api/assignments", // ! UPDATE FOR PROD
       pollInterval: 2000,
       maxRetries: 3,
       retryDelay: 1000,
       toastDuration: 4000,
+      userIdKey: "queuetimer_user_id",
     };
 
     this.state = {
@@ -20,6 +21,7 @@ class QueueTimerApp {
       isLoading: false,
       pollHandle: null,
       retryCount: 0,
+      userId: null,
     };
 
     this.elements = {};
@@ -34,6 +36,8 @@ class QueueTimerApp {
       this.cacheElements();
       this.bindEvents();
       this.showView("list");
+
+      await this.ensureUserId();
       await this.detectAndSendTimezone();
       await this.loadAssignments();
       this.showToast("Application ready", "success");
@@ -41,6 +45,38 @@ class QueueTimerApp {
       this.showToast("Failed to initialize application", "error");
       console.error("Init error:", error);
     }
+  }
+
+  /**
+   * Ensure user has a valid UUID stored locally
+   */
+  async ensureUserId() {
+    let userId = localStorage.getItem(this.config.userIdKey);
+
+    if (!userId || !this.isValidUUID(userId)) {
+      try {
+        const response = await this.apiRequest(
+          "http://localhost:8000/api/user/new/", // ! UPDATE FOR PROD
+          { method: "POST" }
+        );
+        userId = response.user_id;
+        localStorage.setItem(this.config.userIdKey, userId);
+        this.showToast("New session created", "info");
+      } catch (error) {
+        throw new Error(`Failed to create user session: ${error.message}`);
+      }
+    }
+
+    this.state.userId = userId;
+  }
+
+  /**
+   * Validate UUID format
+   */
+  isValidUUID(uuid) {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
   }
 
   /**
@@ -151,7 +187,7 @@ class QueueTimerApp {
   }
 
   /**
-   * API request wrapper with retry logic and loading states
+   * API request wrapper with retry logic and user ID headers
    *
    * @param {string} endpoint - API endpoint path or full URL
    * @param {Object} options - Fetch options (method, body, headers)
@@ -162,11 +198,20 @@ class QueueTimerApp {
     const url = endpoint.startsWith("http")
       ? endpoint
       : `${this.config.baseURL}${endpoint}`;
+
+    const headers = {
+      "Content-Type": "application/json",
+      ...options.headers,
+    };
+
+    // Add user ID header if we have one (skip for user creation)
+    if (this.state.userId && !endpoint.includes("/user/new/")) {
+      headers["X-User-ID"] = this.state.userId;
+    }
+
     const config = {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       credentials: "include",
       ...options,
     };
@@ -176,6 +221,22 @@ class QueueTimerApp {
         const response = await fetch(url, config);
 
         if (!response.ok) {
+          // Handle user ID issues
+          if (response.status === 400 && this.state.userId) {
+            const errorData = await response.json().catch(() => ({}));
+            if (
+              errorData.detail?.includes("User-ID") ||
+              errorData.detail?.includes("UUID")
+            ) {
+              // Invalid user ID, regenerate
+              localStorage.removeItem(this.config.userIdKey);
+              await this.ensureUserId();
+              // Retry with new user ID
+              headers["X-User-ID"] = this.state.userId;
+              continue;
+            }
+          }
+
           const errorData = await response.json().catch(() => ({}));
           const errorMessage =
             errorData.detail || errorData.error || `HTTP ${response.status}`;
@@ -195,23 +256,6 @@ class QueueTimerApp {
   /**
    * GET /api/assignments/
    * Load all assignments for current user session
-   *
-   * @method GET
-   * @endpoint /api/assignments/
-   * @variables None
-   * @returns {Array<GetAssignmentSchemaOut>} Array of assignment objects
-   * @schema GetAssignmentSchemaOut: {
-   *   id: int,
-   *   title: string,
-   *   max_duration: int (minutes),
-   *   start_time: string | null (HH:MM:SS format),
-   *   elapsed_time: string | null (HH:MM:SS format),
-   *   end_time: string | null (HH:MM:SS format),
-   *   pause_count: int,
-   *   is_started: boolean,
-   *   is_paused: boolean,
-   *   is_complete: boolean
-   * }
    */
   async loadAssignments() {
     try {
@@ -233,7 +277,8 @@ class QueueTimerApp {
   async detectAndSendTimezone() {
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      await this.apiRequest("/timezone/", {
+      const url = `http://localhost:8000/api/user/${this.state.userId}/timezone/`; // ! UPDATE FOR PROD
+      await this.apiRequest(url, {
         method: "POST",
         body: JSON.stringify({ timezone }),
       });
@@ -246,14 +291,6 @@ class QueueTimerApp {
   /**
    * POST /api/assignments/
    * Create new assignment with title and duration
-   *
-   * @method POST
-   * @endpoint /api/assignments/
-   * @variables {CreateAssignmentSchemaIn} {
-   *   title: string (max 50 chars),
-   *   duration: string (HH:MM format, e.g. "01:30")
-   * }
-   * @returns {GetAssignmentSchemaOut} Created assignment object
    */
   async createAssignment(data) {
     try {
@@ -276,15 +313,6 @@ class QueueTimerApp {
   /**
    * PATCH /api/assignments/{id}/
    * Update existing assignment title and duration
-   *
-   * @method PATCH
-   * @endpoint /api/assignments/{id}/
-   * @param {number} id - Assignment ID
-   * @variables {UpdateAssignmentSchemaIn} {
-   *   title: string (max 50 chars),
-   *   duration: string (HH:MM format)
-   * }
-   * @returns {GetAssignmentSchemaOut} Updated assignment object
    */
   async updateAssignment(id, data) {
     try {
@@ -306,12 +334,6 @@ class QueueTimerApp {
   /**
    * DELETE /api/assignments/{id}/
    * Delete assignment permanently
-   *
-   * @method DELETE
-   * @endpoint /api/assignments/{id}/
-   * @param {number} id - Assignment ID
-   * @variables None
-   * @returns {null} Status 204 - No content
    */
   async deleteAssignment(id) {
     try {
@@ -330,16 +352,6 @@ class QueueTimerApp {
   /**
    * POST /api/assignments/start/{id}/
    * Start assignment timer
-   *
-   * @method POST
-   * @endpoint /api/assignments/start/{id}/
-   * @param {number} id - Assignment ID
-   * @variables None
-   * @returns {StartAssignmentSchemaOut} {
-   *   start_time: string (HH:MM:SS),
-   *   estimated_end_time: string (HH:MM:SS)
-   * }
-   * @note Uses GET /{id}/ after start for complete assignment data
    */
   async startAssignment(id) {
     try {
@@ -363,15 +375,6 @@ class QueueTimerApp {
   /**
    * POST /api/assignments/pause/{id}/
    * Pause running assignment timer
-   *
-   * @method POST
-   * @endpoint /api/assignments/pause/{id}
-   * @param {number} id - Assignment ID
-   * @variables None
-   * @returns {PauseAssignmentSchemaOut} {
-   *   elapsed_time: string (HH:MM:SS)
-   * }
-   * @note Uses GET /{id}/ after pause for complete assignment data
    */
   async pauseAssignment() {
     if (!this.state.activeAssignmentId) return;
@@ -397,15 +400,6 @@ class QueueTimerApp {
   /**
    * POST /api/assignments/resume/{id}/
    * Resume paused assignment timer
-   *
-   * @method POST
-   * @endpoint /api/assignments/resume/{id}/
-   * @param {number} id - Assignment ID
-   * @variables None
-   * @returns {PauseAssignmentSchemaOut} {
-   *   elapsed_time: string (HH:MM:SS)
-   * }
-   * @note Uses GET /{id}/ after resume for complete assignment data
    */
   async resumeAssignment() {
     if (!this.state.activeAssignmentId) return;
@@ -431,16 +425,6 @@ class QueueTimerApp {
   /**
    * POST /api/assignments/complete/{id}/
    * Complete assignment and generate final statistics
-   *
-   * @method POST
-   * @endpoint /api/assignments/complete/{id}/
-   * @param {number} id - Assignment ID
-   * @variables None
-   * @returns {EndAssignmentSchemaOut} {
-   *   elapsed_time: string (HH:MM:SS),
-   *   end_time: string (HH:MM:SS)
-   * }
-   * @note Uses GET /{id}/ after completion for full assignment data including pause_count
    */
   async completeAssignment() {
     if (!this.state.activeAssignmentId) return;

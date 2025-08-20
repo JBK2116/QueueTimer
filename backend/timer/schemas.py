@@ -1,13 +1,11 @@
 """
-This module stores the globally used pydantic schemas to handle outgoing requests
+This module stores the pydantic schemas
+used in the /api/assignments/ endpoints
 """
 
 from pydantic import BaseModel, Field
 
-
 # INPUT SCHEMAS
-class TimeZone(BaseModel):
-    timezone: str = Field(max_length=50)
 
 
 class CreateAssignment(BaseModel):

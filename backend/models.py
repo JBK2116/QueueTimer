@@ -62,5 +62,5 @@ class AssignmentStatistic(BaseClass):
     elapsed_time = Column(Integer)  # In Seconds
     end_time = Column(DateTime(timezone=True), nullable=True)
     pause_count = Column(Integer, default=0)
-    assignment_id = Column(Integer, ForeignKey("assignments.id"))
+    assignment_id = Column(Integer, ForeignKey("assignments.id"), nullable=False)
     assignment = relationship("Assignment", back_populates="assignment_statistics")

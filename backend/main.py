@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from .timer.routers import router
+from .auth.routers import router as auth_router
+from .timer.routers import router as timer_router
 
 # * : Dev Server Is Running At http://127.0.0.1:8000
 # * Live Server Is Running At http://localhost:5500
@@ -21,8 +22,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.include_router(router, prefix="/api/assignments")
+app.include_router(auth_router, prefix="/api/user")
+app.include_router(timer_router, prefix="/api/assignments")
 
 
 @app.get(path="/test/")
