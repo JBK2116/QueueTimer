@@ -38,7 +38,6 @@ class QueueTimerApp {
       this.showView("list");
 
       await this.ensureUserId();
-      await this.detectAndSendTimezone();
       await this.loadAssignments();
       this.showToast("Application ready", "success");
     } catch (error) {
@@ -55,10 +54,15 @@ class QueueTimerApp {
 
     if (!userId || !this.isValidUUID(userId)) {
       try {
+        const timezone = this.detectTimezone();
         const response = await this.apiRequest(
           "http://localhost:8000/api/user/new/", // ! UPDATE FOR PROD
-          { method: "POST" }
+          {
+            method: "POST",
+            body: JSON.stringify({ timezone }),
+          }
         );
+
         userId = response.user_id;
         localStorage.setItem(this.config.userIdKey, userId);
         this.showToast("New session created", "info");
@@ -68,6 +72,19 @@ class QueueTimerApp {
     }
 
     this.state.userId = userId;
+  }
+
+  /**
+   * Detect user's timezone
+   * @returns {string} IANA timezone identifier
+   */
+  detectTimezone() {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch (error) {
+      console.warn("Failed to detect timezone, using UTC:", error);
+      return "UTC";
+    }
   }
 
   /**
@@ -237,6 +254,16 @@ class QueueTimerApp {
             }
           }
 
+          // Handle server errors for user creation
+          if (endpoint.includes("/user/new/") && response.status >= 500) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMessage =
+              errorData.detail ||
+              errorData.error ||
+              "Server error during user creation";
+            throw new Error(errorMessage);
+          }
+
           const errorData = await response.json().catch(() => ({}));
           const errorMessage =
             errorData.detail || errorData.error || `HTTP ${response.status}`;
@@ -268,23 +295,6 @@ class QueueTimerApp {
       console.error("Load assignments error:", error);
     } finally {
       this.setLoading(false);
-    }
-  }
-
-  /**
-   * Detect and send user timezone to backend
-   */
-  async detectAndSendTimezone() {
-    try {
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const url = `http://localhost:8000/api/user/${this.state.userId}/timezone/`; // ! UPDATE FOR PROD
-      await this.apiRequest(url, {
-        method: "POST",
-        body: JSON.stringify({ timezone }),
-      });
-    } catch (error) {
-      console.warn("Failed to send timezone:", error);
-      // No need to show user error for this non-critical operation
     }
   }
 

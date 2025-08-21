@@ -7,10 +7,10 @@ from pydantic import BaseModel, Field
 
 
 # INPUT SCHEMAS
-class TimeZone(BaseModel):
+class NewUser(BaseModel):
     timezone: str = Field(max_length=50)
 
 
 # OUTPUT SCHEMAS
-class TokenID(BaseModel):
+class Token(BaseModel):
     user_id: str = Field(max_length=36)

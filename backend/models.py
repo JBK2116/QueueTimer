@@ -48,7 +48,7 @@ class Assignment(BaseClass):
     user_id = Column(Integer, ForeignKey("public_users.id"), nullable=False)
     user = relationship("PublicUser", back_populates="assignments")
     assignment_statistics = relationship(
-        "AssignmentStatistics",
+        "AssignmentStatistic",
         uselist=False,
         back_populates="assignment",
         cascade="all, delete",
