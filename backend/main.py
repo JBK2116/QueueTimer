@@ -1,13 +1,19 @@
+import logging.config
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .auth.routers import router as auth_router
+from .logging_config import LOGGING_CONFIG
 from .timer.routers import router as timer_router
 
 # * : Dev Server Is Running At http://127.0.0.1:8000
 # * Live Server Is Running At http://localhost:5500
 # * : Documentation Server Is Running At http://127.0.0.1:8000/docs
+
+# LOGGING
+logging.config.dictConfig(LOGGING_CONFIG)
 
 # * Update Origins In PROD
 origins: list[str] = [
