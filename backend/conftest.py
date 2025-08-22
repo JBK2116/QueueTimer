@@ -21,8 +21,8 @@ testing_connection_url: str = f"postgresql+asyncpg://{os.getenv('DEV_DB_USER')}:
 
 test_engine = create_async_engine(
     testing_connection_url,
-    pool_size=1,  # reduced for testing
-    max_overflow=0,
+    pool_size=5,
+    max_overflow=5,
     pool_pre_ping=True,
     echo=False,
     future=True,
@@ -40,15 +40,13 @@ async_test_session_factory = async_sessionmaker(
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def setup_test_database() -> AsyncGenerator[None, None]:
-    """Set up and tear down the test database schema."""
+    """Set up and tear down the test database schema once per session."""
     try:
         # create database tables
         async with test_engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
-
         yield
-
     finally:
         # delete tables after all tests
         try:
@@ -60,10 +58,14 @@ async def setup_test_database() -> AsyncGenerator[None, None]:
             await test_engine.dispose()
 
 
-@pytest_asyncio.fixture
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Provide a database session with automatic rollback."""
+@pytest_asyncio.fixture(scope="function")
+async def db_session(
+    setup_test_database: AsyncGenerator[None, None],
+) -> AsyncGenerator[AsyncSession, None]:
+    """Provide a database session with an automatic rollback."""
     async with async_test_session_factory() as session:
+        # Begin a transaction
+        await session.begin()
         try:
             yield session
         except Exception:

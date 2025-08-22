@@ -25,9 +25,9 @@ class GetAssignment(BaseModel):
     id: int
     title: str
     max_duration_minutes: int
-    start_time_formatted: str | None = None 
-    elapsed_time_formatted: str | None = None  
-    end_time_formatted: str | None = None  
+    start_time_formatted: str | None = None
+    elapsed_time_formatted: str | None = None
+    end_time_formatted: str | None = None
     pause_count: int
     is_started: bool = False
     is_paused: bool = False

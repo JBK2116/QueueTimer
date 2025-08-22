@@ -61,7 +61,7 @@ async def create_assignment(
         await db_session.commit()
         await db_session.refresh(assignment)
         await db_session.refresh(assignment_statistics)
-        
+
         return services.create_get_assignment_schema(
             assignment=assignment,
             statistics=assignment_statistics,

@@ -7,7 +7,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 
-def generate_token_expiry_time(token_duration_length: int, time_unit: str = "days") -> datetime:
+def generate_token_expiry_time(
+    token_duration_length: int, time_unit: str = "days"
+) -> datetime:
     """
     Generates a datetime object set to the current time
     of function called + token_duration_length
@@ -15,7 +17,7 @@ def generate_token_expiry_time(token_duration_length: int, time_unit: str = "day
     Args:
         token_duration_length: Token duration to add to the current datetime
         time_unit: Unit of length - Must be "minutes", "hours" or "days"
-    
+
     Returns:
         Datetime: Datetime object representing the token expiry date
 

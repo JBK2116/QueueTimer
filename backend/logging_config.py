@@ -1,6 +1,7 @@
 """
 This module stores the global logging configuration dictionary
 """
+
 from typing import Any
 
 LOGGING_CONFIG: dict[str, Any] = {
