@@ -19,10 +19,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev_test = [
-    "pytest>=8.4.1",
-    "pytest-asyncio>=1.1.0",
-]
+dev_test = []
 dev_lint = [
     "mypy>=1.17.1",
     "ruff>=0.12.9",
@@ -31,27 +28,6 @@ dev_lint = [
 [project.urls]
 Homepage = "Coming Soon"
 Repository = "https://github.com/JBK2116/QueueTimer"
-
-[tool.pytest.ini_options]
-filterwarnings = [
-    "ignore::DeprecationWarning"
-]
-# For pytest-asyncio
-asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "session"
-
-testpaths = ["backend"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-
-addopts = ["--tb=short", "-v"]
-
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests", 
-    "unit: marks tests as unit tests"
-]
 
 [tool.ruff]
 line-length = 88
