@@ -84,11 +84,13 @@ class AssignmentStatistic(BaseClass):
     start_time: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    elapsed_time: Mapped[int] = mapped_column(Integer)  # In Seconds
+    elapsed_time: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, default=0
+    )  # In Seconds
     end_time: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    pause_count: Mapped[int] = mapped_column(Integer, default=0)
+    pause_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     assignment_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("assignments.id"), nullable=False, unique=True
     )
