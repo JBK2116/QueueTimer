@@ -28,7 +28,7 @@ async def create_assignment(
     user: PublicUser | None = result.scalar_one_or_none()
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User-ID"
         )
 
     minute_duration: int = services.convert_hours_minutes_to_minutes(data.duration)
@@ -81,3 +81,26 @@ async def create_assignment(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error saving assignment",
         )
+
+
+# READ ENDPOINTS
+@router.get(path="/")
+async def get_assignments(
+    user_id: str = Depends(services.get_user_id_header),
+    db_session: AsyncSession = Depends(get_db),
+) -> list[schemas.GetAssignment]:
+    result = await db_session.execute(queries.get_all_user_info(id=user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User-ID"
+        )
+    assignment_schemas: list[schemas.GetAssignment] = []
+    for assignment in user.assignments:
+        schema = services.create_get_assignment_schema(
+            assignment=assignment,
+            statistics=assignment.assignment_statistics,
+            user_time_region=user.timezone,
+        )
+        assignment_schemas.append(schema)
+    return assignment_schemas
