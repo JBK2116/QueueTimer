@@ -5,7 +5,7 @@ This module stores the routers for the authentication endpoints
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,13 +35,11 @@ async def new_user(
     try:
         await db_session.commit()
         return Token(user_id=token)
-    except IntegrityError as e:
-        log.error(
-            msg={
-                "type": "Error saving Public User object to database",
-                "stack-trace": str(e),
-            },
+    except IntegrityError:
+        log.exception(
+            msg="Error saving Public User object to database",
         )
-        return JSONResponse(
-            content={"error": "Error saving new user to database"}, status_code=500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error saving user to database",
         )

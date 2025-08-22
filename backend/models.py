@@ -2,8 +2,10 @@
 This module stores the database models for this project
 """
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
-from sqlalchemy.orm import relationship, validates
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from sqlalchemy.sql import func
 
 from .db import Base
@@ -13,41 +15,48 @@ from .db import Base
 
 class BaseClass(Base):
     __abstract__ = True
-    id = Column(Integer, primary_key=True)
-    created_at = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    updated_at = Column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), onupdate=func.now(), nullable=False, default=func.now()
     )
 
 
 class PublicUser(BaseClass):
     __tablename__ = "public_users"
-    timezone = Column(
+
+    timezone: Mapped[str] = mapped_column(
         String(length=100), nullable=False
     )  # timezone str received from frontend
-    token = Column(
+    token: Mapped[str] = mapped_column(
         String(length=36), nullable=False, unique=True
     )  # stores auto generated uuid4 token
-    token_expiry_time = Column(
+    token_expiry_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )  # Calculated prior to object creation
-    assignments = relationship(
+
+    assignments: Mapped[list["Assignment"]] = relationship(
         "Assignment", back_populates="user", cascade="all, delete"
     )
 
 
 class Assignment(BaseClass):
     __tablename__ = "assignments"
-    title = Column(String(length=50), nullable=False)
-    max_duration = Column(Integer, nullable=False)  # In Minutes
-    is_started = Column(Boolean, default=False, nullable=False)
-    is_paused = Column(Boolean, default=False, nullable=False)
-    is_complete = Column(Boolean, default=False, nullable=False)
-    user_id = Column(Integer, ForeignKey("public_users.id"), nullable=False)
-    user = relationship("PublicUser", back_populates="assignments")
-    assignment_statistics = relationship(
+
+    title: Mapped[str] = mapped_column(String(length=50), nullable=False)
+    max_duration: Mapped[int] = mapped_column(Integer, nullable=False)  # In Minutes
+    is_started: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_paused: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_complete: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("public_users.id"), nullable=False
+    )
+    user: Mapped["PublicUser"] = relationship(
+        "PublicUser", back_populates="assignments"
+    )
+    assignment_statistics: Mapped["AssignmentStatistic"] = relationship(
         "AssignmentStatistic",
         uselist=False,
         back_populates="assignment",
@@ -71,11 +80,19 @@ class Assignment(BaseClass):
 
 class AssignmentStatistic(BaseClass):
     __tablename__ = "assignment_statistics"
-    start_time = Column(DateTime(timezone=True), nullable=True)
-    elapsed_time = Column(Integer)  # In Seconds
-    end_time = Column(DateTime(timezone=True), nullable=True)
-    pause_count = Column(Integer, default=0)
-    assignment_id = Column(
+
+    start_time: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    elapsed_time: Mapped[int] = mapped_column(Integer)  # In Seconds
+    end_time: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    pause_count: Mapped[int] = mapped_column(Integer, default=0)
+    assignment_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("assignments.id"), nullable=False, unique=True
     )
-    assignment = relationship("Assignment", back_populates="assignment_statistics")
+
+    assignment: Mapped["Assignment"] = relationship(
+        "Assignment", back_populates="assignment_statistics"
+    )

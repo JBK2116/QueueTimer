@@ -3,7 +3,7 @@ This module stores the pydantic schemas
 used in the /api/assignments/ endpoints
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 # INPUT SCHEMAS
 
@@ -20,16 +20,18 @@ class UpdateAssignment(BaseModel):
 
 # OUTPUT SCHEMAS
 class GetAssignment(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     title: str
-    max_duration: int  # minutes
-    start_time: str | None = None  # HH:MM:SS - If Field Is Set In DB
-    elapsed_time: str | None = None  # HH:MM:SS - If Field Is Set In DB
-    end_time: str | None = None  # HH:MM:SS - If Field Is Set In DB
+    max_duration_minutes: int
+    start_time_formatted: str | None = None 
+    elapsed_time_formatted: str | None = None  
+    end_time_formatted: str | None = None  
     pause_count: int
-    is_started: bool
-    is_paused: bool
-    is_complete: bool
+    is_started: bool = False
+    is_paused: bool = False
+    is_complete: bool = False
 
 
 class StartAssignment(BaseModel):
