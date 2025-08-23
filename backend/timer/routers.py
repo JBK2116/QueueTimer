@@ -395,3 +395,54 @@ async def resume_assignment(
             time=new_estimated_end_time, local_time_region=timezone
         )
     )
+
+
+@router.post(
+    path="/complete/{id}/",
+    status_code=status.HTTP_200_OK,
+)
+async def complete_assignment(
+    id: int,
+    user_id: str = Depends(services.get_user_id_header),
+    db_session: AsyncSession = Depends(get_db),
+) -> None:
+    assignment_query = await db_session.execute(
+        queries.get_assignment_by_id(assignment_id=id, user_token=user_id)
+    )
+    assignment = assignment_query.scalar_one_or_none()
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment Not Found")
+
+    if not assignment.is_started:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assignment hasn't been started yet",
+        )
+    elif assignment.is_complete:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assignment has already been completed",
+        )
+    if not isinstance(assignment.assignment_statistics.start_time, datetime):
+        log.exception(
+            msg="Attempted to calculate final elapsed time but assignment start time is not a date time object",
+            extra={
+                "assignment_id": assignment.id,
+                "assignment_statistics_id": assignment.assignment_statistics.id,
+            },
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error occurred calculating start time",
+        )
+
+    final_elapsed_time = services.calculate_elapsed_time(
+        start_time=assignment.assignment_statistics.start_time
+    )
+    assignment.is_paused = False
+    assignment.is_complete = True
+    assignment.assignment_statistics.elapsed_time = final_elapsed_time
+    assignment.assignment_statistics.end_time = datetime.now(tz=tzone.utc)
+    db_session.add(assignment)
+    db_session.add(assignment.assignment_statistics)
+    await db_session.commit()
