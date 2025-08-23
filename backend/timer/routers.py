@@ -195,6 +195,7 @@ async def delete_assignment(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
         )
+    await db_session.commit()
 
 
 # ASSIGNMENT STATE CHANGE ENDPOINTS
