@@ -193,3 +193,46 @@ async def delete_assignment(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
         )
+
+
+# ASSIGNMENT STATE CHANGE ENDPOINTS
+@router.post(
+    path="/start/{id}/",
+    response_model=schemas.StartAssignment,
+    status_code=status.HTTP_200_OK,
+)
+async def start_assignment(
+    id: int,
+    user_id: str = Depends(services.get_user_id_header),
+    db_session: AsyncSession = Depends(get_db),
+) -> schemas.StartAssignment:
+    user_timezone_query = await db_session.execute(
+        queries.get_user_timezone(token=user_id)
+    )
+    timezone = user_timezone_query.scalar_one_or_none()
+    if not timezone:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User-ID"
+        )
+    assignment_query = await db_session.execute(
+        queries.get_assignment_by_id(assignment_id=id, user_token=user_id)
+    )
+    assignment = assignment_query.scalar_one_or_none()
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment Not Found")
+    start_time = services.calculate_start_time()
+    estimated_end_time = services.calculate_estimated_end_time(
+        start_time=start_time, duration=assignment.max_duration, duration_unit="minutes"
+    )
+
+    assignment.is_started = True
+    assignment.assignment_statistics.start_time = start_time
+    db_session.add(assignment)
+    db_session.add(assignment.assignment_statistics)
+    await db_session.commit()
+    return schemas.StartAssignment(
+        start_time=services.format_time(time=start_time, local_time_region=timezone),
+        estimated_end_time=services.format_time(
+            time=estimated_end_time, local_time_region=timezone
+        ),
+    )

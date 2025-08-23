@@ -4,7 +4,7 @@ functions for the timer application endpoints
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -91,3 +91,36 @@ def format_time_backwards(time: int) -> str:
     minutes = (time % 3600) // 60
     seconds = time % 60
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+
+def calculate_start_time() -> datetime:
+    """
+    Calculates the assignments start time
+
+    Returns
+        - datetime: Datetime stored in UTC
+    """
+    return datetime.now(tz=timezone.utc)
+
+
+def calculate_estimated_end_time(
+    start_time: datetime, duration: int, duration_unit: str = "minutes"
+) -> datetime:
+    """
+    Calculates the assignments estimated end time.
+    `Formula: start_time + duration`
+
+    Args:
+        start_time (datetime): Start time in datetime object
+        duration (int): Assignment duration
+        duration_unit (str): Duration unit - Must be either minutes or seconds, defaults to minutes
+
+    Returns:
+        datetime: Datetime stored in UTC
+
+    """
+    match duration_unit.lower():
+        case "seconds":
+            return start_time + timedelta(seconds=duration)
+        case _:
+            return start_time + timedelta(minutes=duration)
