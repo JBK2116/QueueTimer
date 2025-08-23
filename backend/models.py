@@ -51,7 +51,7 @@ class Assignment(BaseClass):
     is_paused: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_complete: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("public_users.id"), nullable=False
+        Integer, ForeignKey("public_users.id", ondelete="CASCADE"), nullable=False
     )
     user: Mapped["PublicUser"] = relationship(
         "PublicUser", back_populates="assignments"
@@ -92,7 +92,7 @@ class AssignmentStatistic(BaseClass):
     )
     pause_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     assignment_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("assignments.id"), nullable=False, unique=True
+        Integer, ForeignKey("assignments.id", ondelete="CASCADE"), nullable=False, unique=True
     )
 
     assignment: Mapped["Assignment"] = relationship(

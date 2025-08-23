@@ -2,7 +2,7 @@
 This module stores database queries used by the timer application
 """
 
-from sqlalchemy import Select, select
+from sqlalchemy import Delete, Select, delete, select
 from sqlalchemy.orm import selectinload
 
 from ..models import Assignment, PublicUser
@@ -25,6 +25,11 @@ def get_assignment_by_id(assignment_id: int) -> Select[tuple[Assignment]]:
         .options(selectinload(Assignment.assignment_statistics))
         .where(Assignment.id == assignment_id)
     )
+
+
+def delete_assignment_by_id(assignment_id: int) -> Delete[Assignment]:
+    """Mutation to delete an indivual `Assignment` with a matching id"""
+    return delete(Assignment).where(Assignment.id == assignment_id)
 
 
 def get_user_timezone(token: str) -> Select[tuple[str]]:

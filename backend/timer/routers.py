@@ -18,7 +18,9 @@ router = APIRouter()
 
 
 # CREATE ENDPOINTS
-@router.post(path="/")
+@router.post(
+    path="/", status_code=status.HTTP_201_CREATED, response_model=schemas.GetAssignment
+)
 async def create_assignment(
     data: schemas.CreateAssignment,
     user_id: str = Depends(services.get_user_id_header),
@@ -167,3 +169,25 @@ async def update_assignment(
         statistics=assignment.assignment_statistics,
         user_time_region=timezone,
     )
+
+
+# DELETE ENDPOINTS
+@router.delete(
+    path="/{id}/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        204: {"description": "Assignment successfully deleted"},
+        404: {"description": "Assignment not found"},
+        422: {"description": "Validation Error"},
+    },
+)
+async def delete_assignment(
+    id: int,
+    user_id: str = Depends(services.get_user_id_header),
+    db_session: AsyncSession = Depends(get_db),
+) -> None:
+    result = await db_session.execute(queries.delete_assignment_by_id(assignment_id=id))
+    if result.rowcount == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
