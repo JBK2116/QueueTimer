@@ -92,7 +92,10 @@ class AssignmentStatistic(BaseClass):
     )
     pause_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     assignment_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("assignments.id", ondelete="CASCADE"), nullable=False, unique=True
+        Integer,
+        ForeignKey("assignments.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
     )
 
     assignment: Mapped["Assignment"] = relationship(

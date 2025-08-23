@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post(path="/new/", response_model=None)
+@router.post(path="/", response_model=Token, status_code=status.HTTP_201_CREATED)
 async def new_user(
     data: NewUser, db_session: AsyncSession = Depends(get_db)
 ) -> Token | JSONResponse:

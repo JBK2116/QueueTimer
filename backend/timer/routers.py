@@ -123,7 +123,7 @@ async def get_assignment(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User-ID"
         )
     assignment_query = await db_session.execute(
-        queries.get_assignment_by_id(assignment_id=id)
+        queries.get_assignment_by_id(assignment_id=id, user_token=user_id)
     )
     assignment = assignment_query.scalar_one_or_none()
     if not assignment:
@@ -152,7 +152,7 @@ async def update_assignment(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User-ID"
         )
     assignment_query = await db_session.execute(
-        queries.get_assignment_by_id(assignment_id=id)
+        queries.get_assignment_by_id(assignment_id=id, user_token=user_id)
     )
     assignment = assignment_query.scalar_one_or_none()
     if not assignment:
@@ -186,7 +186,9 @@ async def delete_assignment(
     user_id: str = Depends(services.get_user_id_header),
     db_session: AsyncSession = Depends(get_db),
 ) -> None:
-    result = await db_session.execute(queries.delete_assignment_by_id(assignment_id=id))
+    result = await db_session.execute(
+        queries.delete_assignment_by_id(assignment_id=id, user_token=user_id)
+    )
     if result.rowcount == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found"

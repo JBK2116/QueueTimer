@@ -13,9 +13,12 @@ def get_user_by_token(token: str) -> Select[tuple[PublicUser]]:
     return select(PublicUser).where(PublicUser.token == token)
 
 
-def get_assignment_by_id(assignment_id: int) -> Select[tuple[Assignment]]:
+def get_assignment_by_id(
+    assignment_id: int, user_token: str
+) -> Select[tuple[Assignment]]:
     """
     Query to select an individual `Assignment` with a matching id
+    and user token
 
     `Uses`:
     - selectinload to retrieve corresponding assignment_statistics
@@ -23,13 +26,19 @@ def get_assignment_by_id(assignment_id: int) -> Select[tuple[Assignment]]:
     return (
         select(Assignment)
         .options(selectinload(Assignment.assignment_statistics))
-        .where(Assignment.id == assignment_id)
+        .where(
+            Assignment.id == assignment_id,
+            Assignment.user.has(PublicUser.token == user_token),
+        )
     )
 
 
-def delete_assignment_by_id(assignment_id: int) -> Delete[Assignment]:
-    """Mutation to delete an indivual `Assignment` with a matching id"""
-    return delete(Assignment).where(Assignment.id == assignment_id)
+def delete_assignment_by_id(assignment_id: int, user_token: str) -> Delete[Assignment]:
+    """Mutation to delete an individual `Assignment` with a matching id and user token"""
+    return delete(Assignment).where(
+        Assignment.id == assignment_id,
+        Assignment.user.has(PublicUser.token == user_token),
+    )
 
 
 def get_user_timezone(token: str) -> Select[tuple[str]]:

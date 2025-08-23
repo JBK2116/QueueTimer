@@ -28,7 +28,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(auth_router, prefix="/api/user")
+app.include_router(auth_router, prefix="/api/users")
 app.include_router(timer_router, prefix="/api/assignments")
 
 
