@@ -140,3 +140,16 @@ def calculate_elapsed_time(start_time: datetime) -> int:
     current_time = datetime.now(tz=timezone.utc)
     time_difference: timedelta = current_time - start_time
     return int(time_difference.total_seconds())
+
+
+def calculate_remaining_time(max_duration: int, elapsed_duration: int) -> int:
+    """
+    Calculates the assignments remaining time.
+
+    `Formula: max_duration (minutes) - elapsed_duration(seconds converted  to minutes)`
+
+    Returns:
+        int - Remaining duration in minutes
+
+    """
+    return max_duration - int(elapsed_duration / 60)

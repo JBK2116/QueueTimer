@@ -4,6 +4,7 @@ This module stores the routers for the main timer endpoints
 
 import logging
 from datetime import datetime
+from datetime import timezone as tzone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
@@ -321,4 +322,76 @@ async def pause_assignment(
     await db_session.commit()
     return schemas.PauseAssignmentResult(
         elapsed_time=services.format_time_backwards(elapsed_time)
+    )
+
+
+@router.post(
+    path="/resume/{id}/",
+    status_code=status.HTTP_200_OK,
+    response_model=schemas.ResumeAssignmentResult,
+)
+async def resume_assignment(
+    id: int,
+    user_id: str = Depends(services.get_user_id_header),
+    db_session: AsyncSession = Depends(get_db),
+) -> schemas.ResumeAssignmentResult:
+    user_timezone_query = await db_session.execute(
+        queries.get_user_timezone(token=user_id)
+    )
+    timezone = user_timezone_query.scalar_one_or_none()
+    if not timezone:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User-ID"
+        )
+    assignment_query = await db_session.execute(
+        queries.get_assignment_by_id(assignment_id=id, user_token=user_id)
+    )
+    assignment = assignment_query.scalar_one_or_none()
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment Not Found")
+
+    if not assignment.is_started:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assignment hasn't been started yet",
+        )
+    elif not assignment.is_paused:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assignment is already running",
+        )
+    elif assignment.is_complete:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assignment has already been completed",
+        )
+    if not isinstance(assignment.assignment_statistics.elapsed_time, int):
+        logging.exception(
+            msg="Attempted to calculate remaining time but assignments elapsed time is not an integer",
+            extra={
+                "assignment_id": assignment.id,
+                "assignment_statistics_id": assignment.assignment_statistics.id,
+            },
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error calculating remaining time",
+        )
+
+    remaining_time_minutes: int = services.calculate_remaining_time(
+        max_duration=assignment.max_duration,
+        elapsed_duration=assignment.assignment_statistics.elapsed_time,
+    )
+    new_estimated_end_time: datetime = services.calculate_estimated_end_time(
+        start_time=datetime.now(tz=tzone.utc),
+        duration=remaining_time_minutes,
+        duration_unit="minutes",
+    )
+    assignment.is_paused = False
+    db_session.add(assignment)
+    await db_session.commit()
+    return schemas.ResumeAssignmentResult(
+        new_end_time=services.format_time(
+            time=new_estimated_end_time, local_time_region=timezone
+        )
     )

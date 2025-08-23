@@ -79,6 +79,14 @@ class PauseAssignmentResult(BaseModel):
     )
 
 
+class ResumeAssignmentResult(BaseModel):
+    new_end_time: str = Field(
+        pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$",
+        max_length=8,
+        description="New end time in HH:MM:SS",
+    )
+
+
 class EndAssignmentSchemaOut(BaseModel):
     elapsed_time: str = Field(
         pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$",

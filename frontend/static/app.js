@@ -407,30 +407,35 @@ class QueueTimerApp {
     }
   }
 
-  /**
-   * POST /api/assignments/resume/{id}/
-   * Resume paused assignment timer
-   */
-  async resumeAssignment() {
-    if (!this.state.activeAssignmentId) return;
+/**
+ * POST /api/assignments/resume/{id}/
+ * Resume paused assignment timer
+ */
+async resumeAssignment() {
+  if (!this.state.activeAssignmentId) return;
 
-    try {
-      this.setButtonLoading("btnResume", true);
-      await this.apiRequest(`/resume/${this.state.activeAssignmentId}/`, {
-        method: "POST",
-      });
+  try {
+    this.setButtonLoading("btnResume", true);
+    const resumeResponse = await this.apiRequest(`/resume/${this.state.activeAssignmentId}/`, {
+      method: "POST",
+    });
 
-      const fullData = await this.apiRequest(
-        `/${this.state.activeAssignmentId}/`
-      );
-      this.updateTimerDisplay(fullData);
-      this.showToast("Timer resumed", "success");
-    } catch (error) {
-      this.showToast(`Failed to resume timer: ${error.message}`, "error");
-    } finally {
-      this.setButtonLoading("btnResume", false);
+    // Display the new estimated end time from resume response
+    if (resumeResponse && resumeResponse.new_end_time && this.elements.metricEnd) {
+      this.elements.metricEnd.textContent = this.formatTime(resumeResponse.new_end_time);
     }
+
+    const fullData = await this.apiRequest(
+      `/${this.state.activeAssignmentId}/`
+    );
+    this.updateTimerDisplay(fullData);
+    this.showToast("Timer resumed", "success");
+  } catch (error) {
+    this.showToast(`Failed to resume timer: ${error.message}`, "error");
+  } finally {
+    this.setButtonLoading("btnResume", false);
   }
+}
 
   /**
    * POST /api/assignments/complete/{id}/
