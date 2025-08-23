@@ -124,3 +124,19 @@ def calculate_estimated_end_time(
             return start_time + timedelta(seconds=duration)
         case _:
             return start_time + timedelta(minutes=duration)
+
+
+def calculate_elapsed_time(start_time: datetime) -> int:
+    """
+    Calculates the assignments current elapsed time.
+    `Formula: current time - start time`
+
+    Args:
+        start_time (datetime): Start time in datetime object
+
+    Returns:
+        int: Elapsed time in `seconds`
+    """
+    current_time = datetime.now(tz=timezone.utc)
+    time_difference: timedelta = current_time - start_time
+    return int(time_difference.total_seconds())

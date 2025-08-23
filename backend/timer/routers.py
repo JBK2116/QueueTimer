@@ -3,6 +3,7 @@ This module stores the routers for the main timer endpoints
 """
 
 import logging
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
@@ -253,4 +254,71 @@ async def start_assignment(
         estimated_end_time=services.format_time(
             time=estimated_end_time, local_time_region=timezone
         ),
+    )
+
+
+@router.post(
+    path="/pause/{id}/",
+    response_model=schemas.PauseAssignmentResult,
+    status_code=status.HTTP_200_OK,
+)
+async def pause_assignment(
+    id: int,
+    user_id: str = Depends(services.get_user_id_header),
+    db_session: AsyncSession = Depends(get_db),
+) -> schemas.PauseAssignmentResult:
+    user_timezone_query = await db_session.execute(
+        queries.get_user_timezone(token=user_id)
+    )
+    timezone = user_timezone_query.scalar_one_or_none()
+    if not timezone:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User-ID"
+        )
+    assignment_query = await db_session.execute(
+        queries.get_assignment_by_id(assignment_id=id, user_token=user_id)
+    )
+    assignment = assignment_query.scalar_one_or_none()
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment Not Found")
+
+    if not assignment.is_started:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assignment hasn't been started yet",
+        )
+    elif assignment.is_paused:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assignment is already paused",
+        )
+    elif assignment.is_complete:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assignment has already been completed",
+        )
+    if not isinstance(assignment.assignment_statistics.start_time, datetime):
+        log.exception(
+            msg="Attempted to calculate elapsed time but assignment start time is not a date time object",
+            extra={
+                "assignment_id": assignment.id,
+                "assignment_statistics_id": assignment.assignment_statistics.id,
+            },
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error occurred calculating start time",
+        )
+
+    elapsed_time: int = services.calculate_elapsed_time(
+        start_time=assignment.assignment_statistics.start_time
+    )
+    assignment.is_paused = True
+    assignment.assignment_statistics.elapsed_time = elapsed_time
+    assignment.assignment_statistics.pause_count += 1
+    db_session.add(assignment)
+    db_session.add(assignment.assignment_statistics)
+    await db_session.commit()
+    return schemas.PauseAssignmentResult(
+        elapsed_time=services.format_time_backwards(elapsed_time)
     )
