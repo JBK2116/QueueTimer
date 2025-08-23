@@ -24,7 +24,7 @@ async def create_assignment(
     user_id: str = Depends(services.get_user_id_header),
     db_session: AsyncSession = Depends(get_db),
 ) -> schemas.GetAssignment:
-    result = await db_session.execute(queries.get_user_by_id(id=user_id))
+    result = await db_session.execute(queries.get_user_by_token(token=user_id))
     user: PublicUser | None = result.scalar_one_or_none()
     if not user:
         raise HTTPException(
@@ -104,3 +104,30 @@ async def get_assignments(
         )
         assignment_schemas.append(schema)
     return assignment_schemas
+
+
+@router.get(path="/{id}/")
+async def get_assignment(
+    id: int,
+    user_id: str = Depends(services.get_user_id_header),
+    db_session: AsyncSession = Depends(get_db),
+) -> schemas.GetAssignment:
+    user_timezone_query = await db_session.execute(
+        queries.get_user_timezone(token=user_id)
+    )
+    timezone = user_timezone_query.scalar_one_or_none()
+    if not timezone:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User-ID"
+        )
+    assignment_query = await db_session.execute(
+        queries.get_assignment_by_id(assignment_id=id)
+    )
+    assignment = assignment_query.scalar_one_or_none()
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment Not Found")
+    return services.create_get_assignment_schema(
+        assignment=assignment,
+        statistics=assignment.assignment_statistics,
+        user_time_region=timezone,
+    )

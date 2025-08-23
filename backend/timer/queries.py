@@ -8,12 +8,31 @@ from sqlalchemy.orm import selectinload
 from ..models import Assignment, PublicUser
 
 
-def get_user_by_id(id: str) -> Select[tuple[PublicUser]]:
+def get_user_by_token(token: str) -> Select[tuple[PublicUser]]:
     """Query to select an individual `PublicUser` with a matching token id"""
-    return select(PublicUser).where(PublicUser.token == id)
+    return select(PublicUser).where(PublicUser.token == token)
 
 
-def get_all_user_info(id: str):
+def get_assignment_by_id(assignment_id: int) -> Select[tuple[Assignment]]:
+    """
+    Query to select an individual `Assignment` with a matching id
+
+    `Uses`:
+    - selectinload to retrieve corresponding assignment_statistics
+    """
+    return (
+        select(Assignment)
+        .options(selectinload(Assignment.assignment_statistics))
+        .where(Assignment.id == assignment_id)
+    )
+
+
+def get_user_timezone(token: str) -> Select[tuple[str]]:
+    """Query to select an individual `PublicUser's` timezone attribute"""
+    return select(PublicUser.timezone).where(PublicUser.token == token)
+
+
+def get_all_user_info(id: str) -> Select[tuple[PublicUser]]:
     """
     Query to load a PublicUser with all related assignments
     and their assignment statistics.
