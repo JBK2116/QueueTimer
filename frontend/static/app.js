@@ -56,7 +56,7 @@ class QueueTimerApp {
       try {
         const timezone = this.detectTimezone();
         const response = await this.apiRequest(
-          "http://localhost:8000/api/user/new/", // ! UPDATE FOR PROD
+          "http://localhost:8000/api/users/", // ! UPDATE FOR PROD
           {
             method: "POST",
             body: JSON.stringify({ timezone }),
@@ -222,7 +222,7 @@ class QueueTimerApp {
     };
 
     // Add user ID header if we have one (skip for user creation)
-    if (this.state.userId && !endpoint.includes("/user/new/")) {
+    if (this.state.userId && !endpoint.includes("/users/")) {
       headers["X-User-ID"] = this.state.userId;
     }
 
@@ -255,7 +255,7 @@ class QueueTimerApp {
           }
 
           // Handle server errors for user creation
-          if (endpoint.includes("/user/new/") && response.status >= 500) {
+          if (endpoint.includes("/users/") && response.status >= 500) {
             const errorData = await response.json().catch(() => ({}));
             const errorMessage =
               errorData.detail ||
