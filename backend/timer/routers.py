@@ -220,9 +220,27 @@ async def start_assignment(
     assignment = assignment_query.scalar_one_or_none()
     if not assignment:
         raise HTTPException(status_code=404, detail="Assignment Not Found")
+
+    if assignment.is_started:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assignment has already started",
+        )
+    elif assignment.is_paused:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assignment has already been started and is currently paused",
+        )
+    elif assignment.is_complete:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assignment has already been completed",
+        )
     start_time = services.calculate_start_time()
     estimated_end_time = services.calculate_estimated_end_time(
-        start_time=start_time, duration=assignment.max_duration, duration_unit="minutes"
+        start_time=start_time,
+        duration=assignment.max_duration,
+        duration_unit="minutes",
     )
 
     assignment.is_started = True
