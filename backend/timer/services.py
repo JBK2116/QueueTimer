@@ -23,7 +23,9 @@ def get_user_id_header(x_user_id: str = Header(None)) -> str:
     `Used solely via depedency injection in a router function`
     """
     if not x_user_id:
-        raise HTTPException(status_code=400, detail={"Missing X-User-ID Header"})
+        raise HTTPException(
+            status_code=400, detail={"error": "Missing X-User-ID Header"}
+        )
     try:
         _ = uuid.UUID(x_user_id)
         return x_user_id
@@ -50,15 +52,15 @@ def create_get_assignment_schema(
         "id": assignment.id,
         "title": assignment.title,
         "max_duration_minutes": assignment.max_duration,
-        "start_time": format_time(
+        "start_time_formatted": format_time(
             time=statistics.start_time, local_time_region=user_time_region
         )
         if statistics.start_time
         else None,
-        "elapsed_time": format_time_backwards(time=statistics.elapsed_time)
+        "elapsed_time_formatted": format_time_backwards(time=statistics.elapsed_time)
         if statistics.elapsed_time
         else None,
-        "end_time": format_time(
+        "end_time_formatted": format_time(
             time=statistics.end_time, local_time_region=user_time_region
         )
         if statistics.end_time

@@ -20,12 +20,6 @@ class CreateAssignment(BaseModel):
 
 class UpdateAssignment(BaseModel):
     title: str = Field(max_length=50, description="Updated title of the assignment")
-    duration: str = Field(
-        pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$",
-        max_length=5,
-        description="Updated duration in HH:MM (example: 01:00 = 1 hour, 11:20 = 11 hours 20 minutes). "
-        "Range: 00:01–23:59",
-    )
 
 
 # OUTPUT SCHEMAS

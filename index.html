@@ -1,160 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>QueueTimer — Productivity Tracker</title>
-    <link rel="stylesheet" href="frontend/static/styles.css" />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%23000'/><text x='50' y='62' text-anchor='middle' font-size='60' fill='%23fff'>Q</text></svg>"
-    />
-  </head>
-  <body>
-    <!-- NAVBAR -->
-    <header class="navbar">
-      <div class="nav-left">
-        <div class="logo-mark" aria-hidden="true">⌛</div>
-        <a href="#" class="brand">QueueTimer</a>
-      </div>
-      <nav class="nav-right">
-        <button class="nav-icon" id="accountBtn" title="Account (no auth)">
-          👤
-        </button>
-      </nav>
-    </header>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QueueTimer</title>
+    <link rel="stylesheet" href="frontend/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>QueueTimer</h1>
+            <p class="subtitle">Simple Assignment Time Tracking</p>
+        </header>
 
-    <!-- GLOBAL MESSAGES -->
-    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+        <main>
+            <!-- Assignment Creation Form -->
+            <div id="assignment-form" class="card">
+                <h2>Create New Assignment</h2>
+                <form id="create-assignment-form">
+                    <div class="form-group">
+                        <label for="title">Assignment Title</label>
+                        <input type="text" id="title" name="title" maxlength="50" placeholder="e.g., Do Homework" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="duration">Duration (HH:MM)</label>
+                        <input type="text" id="duration" name="duration" pattern="^(?:[01]\d|2[0-3]):[0-5]\d$" placeholder="01:30" required>
+                        <small>Format: HH:MM (00:01-23:59)</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create & Start Assignment</button>
+                </form>
+            </div>
 
-    <!-- MAIN APP CONTAINER -->
-    <main id="app" class="container">
-      <!-- Landing / List View -->
-      <section id="view-list" class="view active">
-        <div class="hero">
-          <h1 class="headline">Focus your queue.</h1>
-          <p class="subhead">Track assignments as timers. No login needed.</p>
+            <!-- Active Timer Display -->
+            <div id="timer-display" class="card hidden">
+                <div class="title-edit-container">
+                    <input type="text" id="assignment-title-input" class="title-input" maxlength="50" placeholder="Assignment Title">
+                    <button id="save-title-btn" class="btn btn-secondary btn-small">Save</button>
+                </div>
+                <div class="timer-container">
+                    <div class="time-display">
+                        <span id="elapsed-time">00:00:00</span>
+                    </div>
+                    <div class="timer-controls">
+                        <button id="pause-btn" class="btn btn-secondary">Pause</button>
+                        <button id="resume-btn" class="btn btn-secondary hidden">Resume</button>
+                        <button id="complete-btn" class="btn btn-danger">Complete</button>
+                    </div>
+                </div>
+                <div class="timer-info">
+                    <p>Pause Count: <span id="pause-count">0</span></p>
+                    <p>Start Time: <span id="start-time">--:--:--</span></p>
+                    <p>Estimated End: <span id="estimated-end">--:--:--</span></p>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loading" class="card hidden">
+                <div class="loading-spinner"></div>
+                <p>Loading...</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Completion Modal -->
+    <div id="completion-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Assignment Completed!</h2>
+            <div class="completion-stats">
+                <div class="stat">
+                    <label>Start Time:</label>
+                    <span id="modal-start-time">--:--:--</span>
+                </div>
+                <div class="stat">
+                    <label>End Time:</label>
+                    <span id="modal-end-time">--:--:--</span>
+                </div>
+                <div class="stat">
+                    <label>Total Elapsed:</label>
+                    <span id="modal-elapsed-time">--:--:--</span>
+                </div>
+                <div class="stat">
+                    <label>Pause Count:</label>
+                    <span id="modal-pause-count">0</span>
+                </div>
+            </div>
+            <button id="close-modal" class="btn btn-primary">Close</button>
         </div>
-
-        <div class="actions">
-          <button id="btnCreate" class="btn primary">Create Assignment</button>
-          <button id="btnStart" class="btn">Start Assignment</button>
-          <button id="btnUpdate" class="btn">Update Assignment</button>
-          <button id="btnDelete" class="btn danger">Delete Assignment</button>
-        </div>
-
-        <div class="panel">
-          <h2 class="panel-title">Your Assignments</h2>
-          <p id="emptyState" class="muted">
-            No assignments yet. Create one to begin tracking.
-          </p>
-          <ul id="assignmentList" class="assignment-list"></ul>
-        </div>
-      </section>
-
-      <!-- Timer View -->
-      <section id="view-timer" class="view">
-        <div class="panel">
-          <div class="panel-header">
-            <button class="btn subtle" id="backToList">&larr; Back</button>
-            <h2 class="panel-title" id="timerTitle">Active Assignment</h2>
-          </div>
-
-          <div class="timer">
-            <div class="time" id="bigTimer">00:00</div>
-          </div>
-
-          <div class="analytics">
-            <div class="metric">
-              <div class="label">Start</div>
-              <div class="value" id="metricStart">--:--:--</div>
-            </div>
-            <div class="metric">
-              <div class="label">Elapsed</div>
-              <div class="value" id="metricElapsed">00:00</div>
-            </div>
-            <div class="metric">
-              <div class="label">End</div>
-              <div class="value" id="metricEnd">--:--:--</div>
-            </div>
-          </div>
-
-          <div class="actions">
-            <button id="btnPause" class="btn">Pause</button>
-            <button id="btnResume" class="btn">Resume</button>
-            <button id="btnComplete" class="btn success">Complete</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Summary View (one-time after completion) -->
-      <section id="view-summary" class="view">
-        <div class="panel">
-          <div class="panel-header">
-            <h2 class="panel-title">Assignment Summary</h2>
-          </div>
-
-          <div class="summary-grid">
-            <div class="summary-card">
-              <div class="summary-label">Start</div>
-              <div class="summary-value" id="sumStart">--:--:--</div>
-            </div>
-            <div class="summary-card">
-              <div class="summary-label">End</div>
-              <div class="summary-value" id="sumEnd">--:--:--</div>
-            </div>
-            <div class="summary-card">
-              <div class="summary-label">Elapsed</div>
-              <div class="summary-value" id="sumElapsed">00:00</div>
-            </div>
-            <div class="summary-card">
-              <div class="summary-label">Pauses</div>
-              <div class="summary-value" id="sumPauses">0</div>
-            </div>
-          </div>
-
-          <div class="actions">
-            <button id="btnSummaryDone" class="btn primary">Done</button>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <!-- Modals -->
-    <dialog id="modalCreate" class="modal">
-      <form id="formCreate" method="dialog" class="modal-content">
-        <h3>Create Assignment</h3>
-        <label
-          >Title (≤ 50 chars)
-          <input type="text" id="createTitle" maxlength="50" required />
-        </label>
-        <label
-          >Estimated (hh:mm)
-          <input
-            type="text"
-            id="createEstimate"
-            placeholder="01:30"
-            pattern="^\d{1,2}:\d{2}$"
-            required
-          />
-        </label>
-        <menu>
-          <button type="button" id="btnCreateCancel">Cancel</button>
-          <button class="btn primary" value="default">Create</button>
-        </menu>
-      </form>
-    </dialog>
-
-    <dialog id="modalPicker" class="modal">
-      <form method="dialog" class="modal-content">
-        <h3 id="pickerTitle">Select Assignment</h3>
-        <ul id="pickerList" class="assignment-list compact"></ul>
-        <menu>
-          <button class="btn subtle" value="cancel">Cancel</button>
-        </menu>
-      </form>
-    </dialog>
+    </div>
 
     <script src="frontend/static/app.js"></script>
-  </body>
+</body>
 </html>

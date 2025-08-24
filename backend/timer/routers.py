@@ -160,9 +160,6 @@ async def update_assignment(
     if not assignment:
         raise HTTPException(status_code=404, detail="Assignment Not Found")
     assignment.title = data.title
-    assignment.max_duration = services.convert_hours_minutes_to_minutes(
-        time=data.duration
-    )
     db_session.add(assignment)
     await db_session.commit()
     await db_session.refresh(assignment)
