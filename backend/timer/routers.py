@@ -56,7 +56,7 @@ async def create_assignment(
         )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Error occurred creating assignment",
+            detail=f"{e}",
         )
 
     db_session.add(assignment)

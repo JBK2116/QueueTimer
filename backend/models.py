@@ -65,17 +65,30 @@ class Assignment(BaseClass):
 
     @validates("title")
     def validate_title(self, key: str, value: str) -> str:
-        if 1 <= len(value) <= 50:
-            return value
+        cleaned_value = value.strip()  # Remove whitespace for validation
+        if 1 <= len(cleaned_value) <= 50:
+            return cleaned_value
         else:
-            raise ValueError(f"title length out of bounds: {len(value)}")
+            if len(cleaned_value) == 0:
+                raise ValueError("Assignment title is required.")
+            else:
+                raise ValueError(
+                    f"Title is too long ({len(cleaned_value)} characters). Please keep it under 50 characters."
+                )
 
     @validates("max_duration")
     def validate_max_duration(self, key: str, value: int) -> int:
         if 1 <= value <= 60 * 24:
             return value
         else:
-            raise ValueError(f"max_duration out of bounds: {value}")
+            hours = value // 60
+            minutes = value % 60
+            if value < 1:
+                raise ValueError("Duration must be at least 1 minute.")
+            else:
+                raise ValueError(
+                    f"Duration too long: {hours}h {minutes}m. Maximum allowed is 24 hours."
+                )
 
 
 class AssignmentStatistic(BaseClass):

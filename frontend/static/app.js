@@ -6,14 +6,16 @@ class QueueTimer {
     this.timerInterval = null;
     this.startTime = null;
     this.isPaused = false;
+    this.maxDurationMinutes = null; // Store max duration for auto-completion
+    this.localElapsedSeconds = 0; // Track elapsed time locally
 
     this.initializeApp();
   }
 
   async initializeApp() {
     try {
+      this.setupEventListeners(); // Set up event listeners first
       await this.ensureUserToken();
-      this.setupEventListeners();
       this.showAssignmentForm();
     } catch (error) {
       console.error("Failed to initialize app:", error);
@@ -114,6 +116,36 @@ class QueueTimer {
     document
       .getElementById("close-modal")
       .addEventListener("click", () => this.closeCompletionModal());
+
+    // Error modal close
+    const errorCloseBtn = document.getElementById("close-error-modal");
+    const errorModal = document.getElementById("error-modal");
+
+    if (errorCloseBtn) {
+      errorCloseBtn.addEventListener("click", () => this.closeErrorModal());
+      console.log("Error close button event listener added");
+    } else {
+      console.error("Error close button not found");
+    }
+
+    // Also allow clicking on modal backdrop to close
+    if (errorModal) {
+      errorModal.addEventListener("click", (e) => {
+        if (e.target === errorModal) {
+          this.closeErrorModal();
+        }
+      });
+      console.log("Error modal backdrop click listener added");
+    } else {
+      console.error("Error modal element not found");
+    }
+
+    // Allow Escape key to close error modal
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !errorModal.classList.contains("hidden")) {
+        this.closeErrorModal();
+      }
+    });
   }
 
   async createAndStartAssignment() {
@@ -140,17 +172,25 @@ class QueueTimer {
         "POST"
       );
 
-      this.currentAssignment = assignment;
+      // Get updated assignment data to get max_duration_minutes
+      const updatedAssignment = await this.makeRequest(
+        `/assignments/${assignment.id}/`,
+        "GET"
+      );
+
+      this.currentAssignment = updatedAssignment;
       this.startTime = new Date();
       this.isPaused = false;
+      this.maxDurationMinutes = updatedAssignment.max_duration_minutes;
+      this.localElapsedSeconds = 0;
 
       // Update UI
-      this.updateTimerDisplay(assignment, startData);
+      this.updateTimerDisplay(updatedAssignment, startData);
       this.startTimer();
       this.showTimerDisplay();
     } catch (error) {
-      console.error("Failed to create/start assignment:", error);
-      this.showError("Failed to create assignment");
+      const errorMessage = error.message || "Failed to create assignment";
+      this.showError(errorMessage);
       this.showAssignmentForm();
     }
   }
@@ -166,8 +206,16 @@ class QueueTimer {
   startTimer() {
     this.timerInterval = setInterval(() => {
       if (!this.isPaused && this.startTime) {
-        const elapsed = Math.floor((new Date() - this.startTime) / 1000);
-        this.updateElapsedTime(elapsed);
+        this.localElapsedSeconds++;
+        this.updateElapsedTime(this.localElapsedSeconds);
+
+        // Check if we've reached max duration
+        if (
+          this.maxDurationMinutes &&
+          this.localElapsedSeconds >= this.maxDurationMinutes * 60
+        ) {
+          this.autoCompleteAssignment();
+        }
       }
     }, 1000);
   }
@@ -193,6 +241,7 @@ class QueueTimer {
       document.getElementById("resume-btn").classList.remove("hidden");
       document.getElementById("pause-count").textContent =
         this.currentAssignment.pause_count + 1;
+      // Local elapsed time tracking continues to work correctly when paused
     } catch (error) {
       console.error("Failed to pause assignment:", error);
       this.showError("Failed to pause assignment");
@@ -254,6 +303,12 @@ class QueueTimer {
     }
   }
 
+  async autoCompleteAssignment() {
+    console.log("Auto-completing assignment - max duration reached");
+    this.stopTimer();
+    await this.completeAssignment();
+  }
+
   async completeAssignment() {
     try {
       await this.makeRequest(
@@ -310,6 +365,8 @@ class QueueTimer {
     this.currentAssignment = null;
     this.startTime = null;
     this.isPaused = false;
+    this.maxDurationMinutes = null;
+    this.localElapsedSeconds = 0;
 
     // Hide modal and show form
     document.getElementById("completion-modal").classList.add("hidden");
@@ -338,7 +395,19 @@ class QueueTimer {
   }
 
   showError(message) {
-    alert(message); // Simple error display - could be enhanced with a proper error modal
+    document.getElementById("error-message").textContent = message;
+    document.getElementById("error-modal").classList.remove("hidden");
+  }
+
+  closeErrorModal() {
+    console.log("Closing error modal");
+    const errorModal = document.getElementById("error-modal");
+    if (errorModal) {
+      errorModal.classList.add("hidden");
+      console.log("Error modal hidden");
+    } else {
+      console.error("Error modal element not found");
+    }
   }
 }
 
