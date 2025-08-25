@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from dotenv import load_dotenv
@@ -19,6 +20,25 @@ async_session_generator = async_sessionmaker(engine, expire_on_commit=False)
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Yields a database connection used via depedency injections
+    in fast api endpoint handling
+    """
+    async with async_session_generator() as session:
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+
+
+@asynccontextmanager
+async def general_db() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Yields a database connection used via regular async functions
+    """
     async with async_session_generator() as session:
         try:
             yield session

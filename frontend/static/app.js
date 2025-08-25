@@ -8,6 +8,8 @@ class QueueTimer {
     this.isPaused = false;
     this.maxDurationMinutes = null; // Store max duration for auto-completion
     this.localElapsedSeconds = 0; // Track elapsed time locally
+    this.audioContext = null; // Web Audio context (initialized on first user gesture)
+    this.audioGainNode = null; // Master gain node
 
     this.initializeApp();
   }
@@ -147,6 +149,13 @@ class QueueTimer {
       if (e.key === "Escape" && !errorModal.classList.contains("hidden")) {
         this.closeErrorModal();
       }
+    });
+
+    // Initialize audio on first user interaction to satisfy autoplay policies
+    const initAudioIfNeeded = () => this.initializeAudio();
+    document.body.addEventListener("click", initAudioIfNeeded, { once: true });
+    document.body.addEventListener("keydown", initAudioIfNeeded, {
+      once: true,
     });
   }
 
@@ -354,6 +363,7 @@ class QueueTimer {
       assignment.pause_count;
 
     document.getElementById("completion-modal").classList.remove("hidden");
+    this.playCompletionSound();
   }
 
   async closeCompletionModal() {
@@ -365,8 +375,7 @@ class QueueTimer {
       );
     } catch (error) {
       const errorMessage = error.message || "Failed to delete assignment";
-      console.error(errorMessage);
-      this.showError(errorMessage);
+      console.error(errorMessage); // No need to show error, the assignment will auto delete when the users token is expired
     }
 
     // Reset state
@@ -415,6 +424,74 @@ class QueueTimer {
       console.log("Error modal hidden");
     } else {
       console.error("Error modal element not found");
+    }
+  }
+
+  initializeAudio() {
+    try {
+      if (!this.audioContext) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return; // Browser not supported
+        this.audioContext = new AudioCtx();
+        this.audioGainNode = this.audioContext.createGain();
+        this.audioGainNode.gain.value = 0.05; // Low volume default
+        this.audioGainNode.connect(this.audioContext.destination);
+      }
+      if (this.audioContext.state === "suspended") {
+        this.audioContext.resume();
+      }
+    } catch (e) {
+      // Fail silently if audio cannot be initialized
+    }
+  }
+
+  playTone(frequency, durationMs, type = "sine", startDelayMs = 0) {
+    if (!this.audioContext) return;
+    const now = this.audioContext.currentTime + startDelayMs / 1000;
+    const oscillator = this.audioContext.createOscillator();
+    const envelope = this.audioContext.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, now);
+
+    // Quick attack/decay envelope to avoid clicks
+    const attack = 0.005;
+    const release = 0.08;
+    envelope.gain.setValueAtTime(0.0, now);
+    envelope.gain.linearRampToValueAtTime(1.0, now + attack);
+    envelope.gain.setValueAtTime(1.0, now + durationMs / 1000 - release);
+    envelope.gain.linearRampToValueAtTime(0.0, now + durationMs / 1000);
+
+    oscillator.connect(envelope);
+    envelope.connect(this.audioGainNode || this.audioContext.destination);
+
+    oscillator.start(now);
+    oscillator.stop(now + durationMs / 1000 + 0.01);
+  }
+
+  playCompletionSound() {
+    // Ensure audio is initialized (safe no-op if already done)
+    this.initializeAudio();
+    if (!this.audioContext) return;
+
+    const totalDurationMs = 4000; // Repeat alert for ~3s
+    const toneDurationMs = 180; // Length of each individual beep
+    const spacingBetweenBeepsMs = 230; // Delay between beep 1 and beep 2
+    const cyclePeriodMs = 600; // Start of one pair to start of the next
+
+    // Beep frequencies: A5 (880 Hz) then C6 (~1046.5 Hz)
+    for (
+      let offsetMs = 0;
+      offsetMs < totalDurationMs;
+      offsetMs += cyclePeriodMs
+    ) {
+      this.playTone(880, toneDurationMs, "sine", offsetMs);
+      this.playTone(
+        1046.5,
+        toneDurationMs,
+        "sine",
+        offsetMs + spacingBetweenBeepsMs
+      );
     }
   }
 }

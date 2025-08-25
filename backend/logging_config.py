@@ -2,7 +2,11 @@
 This module stores the global logging configuration dictionary
 """
 
+import os
 from typing import Any
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOGS_DIR = os.path.join(BASE_DIR, "logs")
 
 LOGGING_CONFIG: dict[str, Any] = {
     "version": 1,
@@ -16,14 +20,14 @@ LOGGING_CONFIG: dict[str, Any] = {
     "handlers": {
         "auth_file": {
             "class": "logging.handlers.RotatingFileHandler",
-            "filename": "logs/auth.log",
+            "filename": os.path.join(LOGS_DIR, "auth.log"),
             "maxBytes": 10485760,  # 10MB
             "backupCount": 5,
             "formatter": "json",
         },
         "timer_file": {
             "class": "logging.handlers.RotatingFileHandler",
-            "filename": "logs/timer.log",
+            "filename": os.path.join(LOGS_DIR, "timer.log"),
             "maxBytes": 10485760,  # 10MB
             "backupCount": 5,
             "formatter": "json",

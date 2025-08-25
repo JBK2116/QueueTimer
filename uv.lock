@@ -578,6 +578,7 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "python-json-logger" },
     { name = "sqlalchemy" },
+    { name = "typer" },
 ]
 
 [package.dev-dependencies]
@@ -595,6 +596,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "python-json-logger", specifier = ">=3.3.0" },
     { name = "sqlalchemy", specifier = ">=2.0.43" },
+    { name = "typer", specifier = ">=0.16.1" },
 ]
 
 [package.metadata.requires-dev]
