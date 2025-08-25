@@ -14,12 +14,13 @@ class QueueTimer {
 
   async initializeApp() {
     try {
-      this.setupEventListeners(); // Set up event listeners first
+      this.setupEventListeners();
       await this.ensureUserToken();
       this.showAssignmentForm();
     } catch (error) {
-      console.error("Failed to initialize app:", error);
-      this.showError("Failed to initialize application");
+      const errorMessage = "Failed to initialize app";
+      console.error(errorMessage);
+      this.showError(errorMessage);
     }
   }
 
@@ -52,8 +53,9 @@ class QueueTimer {
       this.userToken = response.user_id;
       localStorage.setItem("queueTimerToken", this.userToken);
     } catch (error) {
+      const errorMessage = error.message || "Failed to create user";
       console.error("Failed to create user:", error);
-      throw new Error("Failed to create user account");
+      throw new Error(errorMessage);
     }
   }
 
@@ -243,8 +245,9 @@ class QueueTimer {
         this.currentAssignment.pause_count + 1;
       // Local elapsed time tracking continues to work correctly when paused
     } catch (error) {
+      const errorMessage = error.message || "Failed to pause assignment";
       console.error("Failed to pause assignment:", error);
-      this.showError("Failed to pause assignment");
+      this.showError(errorMessage);
     }
   }
 
@@ -260,8 +263,9 @@ class QueueTimer {
       document.getElementById("estimated-end").textContent =
         response.new_end_time;
     } catch (error) {
+      const errorMessage = error.message || "Failed to resume assignment";
       console.error("Failed to resume assignment:", error);
-      this.showError("Failed to resume assignment");
+      this.showError(errorMessage);
     }
   }
 
@@ -298,8 +302,9 @@ class QueueTimer {
         saveBtn.style.background = "";
       }, 1000);
     } catch (error) {
+      const errorMessage = error.message || "Failed to update assignment title";
       console.error("Failed to update assignment title:", error);
-      this.showError("Failed to update title");
+      this.showError(errorMessage);
     }
   }
 
@@ -325,8 +330,9 @@ class QueueTimer {
       this.stopTimer();
       this.showCompletionModal(finalAssignment);
     } catch (error) {
+      const errorMessage = error.message || "Failed to complete assignment";
       console.error("Failed to complete assignment:", error);
-      this.showError("Failed to complete assignment");
+      this.showError(errorMessage);
     }
   }
 
@@ -358,7 +364,9 @@ class QueueTimer {
         "DELETE"
       );
     } catch (error) {
-      console.error("Failed to delete assignment:", error);
+      const errorMessage = error.message || "Failed to delete assignment";
+      console.error(errorMessage);
+      this.showError(errorMessage);
     }
 
     // Reset state

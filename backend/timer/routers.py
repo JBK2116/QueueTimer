@@ -32,7 +32,7 @@ async def create_assignment(
     user: PublicUser | None = result.scalar_one_or_none()
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User-ID"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="User not found"
         )
 
     minute_duration: int = services.convert_hours_minutes_to_minutes(data.duration)
@@ -97,7 +97,7 @@ async def get_assignments(
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User-ID"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="User not found"
         )
     assignment_schemas: list[schemas.GetAssignment] = []
     for assignment in user.assignments:
@@ -122,7 +122,7 @@ async def get_assignment(
     timezone = user_timezone_query.scalar_one_or_none()
     if not timezone:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User-ID"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="User not found"
         )
     assignment_query = await db_session.execute(
         queries.get_assignment_by_id(assignment_id=id, user_token=user_id)
@@ -151,7 +151,7 @@ async def update_assignment(
     timezone = user_timezone_query.scalar_one_or_none()
     if not timezone:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User-ID"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="User not found"
         )
     assignment_query = await db_session.execute(
         queries.get_assignment_by_id(assignment_id=id, user_token=user_id)
@@ -212,7 +212,7 @@ async def start_assignment(
     timezone = user_timezone_query.scalar_one_or_none()
     if not timezone:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User-ID"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="User not found"
         )
     assignment_query = await db_session.execute(
         queries.get_assignment_by_id(assignment_id=id, user_token=user_id)
@@ -272,7 +272,7 @@ async def pause_assignment(
     timezone = user_timezone_query.scalar_one_or_none()
     if not timezone:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User-ID"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="User not found"
         )
     assignment_query = await db_session.execute(
         queries.get_assignment_by_id(assignment_id=id, user_token=user_id)
@@ -339,7 +339,7 @@ async def resume_assignment(
     timezone = user_timezone_query.scalar_one_or_none()
     if not timezone:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User-ID"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="User not found"
         )
     assignment_query = await db_session.execute(
         queries.get_assignment_by_id(assignment_id=id, user_token=user_id)
