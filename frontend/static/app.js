@@ -217,10 +217,11 @@ class QueueTimer {
   startTimer() {
     this.timerInterval = setInterval(() => {
       if (!this.isPaused && this.startTime) {
-        this.localElapsedSeconds++;
+        this.localElapsedSeconds = Math.floor(
+          (Date.now() - this.startTime) / 1000
+        );
         this.updateElapsedTime(this.localElapsedSeconds);
 
-        // Check if we've reached max duration
         if (
           this.maxDurationMinutes &&
           this.localElapsedSeconds >= this.maxDurationMinutes * 60
