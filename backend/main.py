@@ -32,7 +32,7 @@ app.include_router(auth_router, prefix="/api/users")
 app.include_router(timer_router, prefix="/api/assignments")
 
 
-@app.get(path="/test/")
+@app.get(path="/api/test/")
 def test_connection() -> JSONResponse:
     return JSONResponse(
         content={
