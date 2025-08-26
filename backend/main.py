@@ -19,7 +19,7 @@ logging.config.dictConfig(LOGGING_CONFIG)
 origins: list[str] = [
     "http://localhost:5500",
 ]
-app = FastAPI()
+app = FastAPI(root_path="/api")
 
 app.add_middleware(
     CORSMiddleware,
@@ -28,11 +28,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(auth_router, prefix="/api/users")
-app.include_router(timer_router, prefix="/api/assignments")
+app.include_router(auth_router, prefix="/users")
+app.include_router(timer_router, prefix="/assignments")
 
 
-@app.get(path="/api/test/")
+@app.get(path="/test/")
 def test_connection() -> JSONResponse:
     return JSONResponse(
         content={
