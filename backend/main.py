@@ -33,7 +33,7 @@ app.include_router(timer_router, prefix="/api/assignments")
 
 
 @app.get(path="/test/")
-def test() -> JSONResponse:
+def test_connection() -> JSONResponse:
     return JSONResponse(
         content={
             "status": "You are now connected to the QueueTimer API",

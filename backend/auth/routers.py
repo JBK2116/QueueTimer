@@ -35,7 +35,7 @@ async def test_token(
 
 
 @router.post(path="/", response_model=Token, status_code=status.HTTP_201_CREATED)
-async def new_user(
+async def create_user(
     data: NewUser, db_session: AsyncSession = Depends(get_db)
 ) -> Token | JSONResponse:
     token: str = generate_uuid_token()
