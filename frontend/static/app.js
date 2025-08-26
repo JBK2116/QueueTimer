@@ -1,6 +1,6 @@
 class QueueTimer {
   constructor() {
-    this.apiBase = "http://127.0.0.1:8000/api"; // ! UPDATE FOR PROD LATER
+    this.apiBase = "/api";
     this.userToken = null;
     this.currentAssignment = null;
     this.timerInterval = null;
