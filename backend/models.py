@@ -78,17 +78,13 @@ class Assignment(BaseClass):
 
     @validates("max_duration")
     def validate_max_duration(self, key: str, value: int) -> int:
-        if 1 <= value <= 60 * 24:
+        if 1 <= value <= 24 * 3600:
             return value
         else:
-            hours = value // 60
-            minutes = value % 60
             if value < 1:
                 raise ValueError("Duration must be at least 1 minute.")
             else:
-                raise ValueError(
-                    f"Duration too long: {hours}h {minutes}m. Maximum allowed is 24 hours."
-                )
+                raise ValueError("Duration too long. Maximum allowed is 24 hours.")
 
 
 class AssignmentStatistic(BaseClass):
