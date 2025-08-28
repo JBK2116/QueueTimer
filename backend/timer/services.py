@@ -35,14 +35,12 @@ def get_user_id_header(x_user_id: str = Header(None)) -> str:
         )
 
 
-def convert_hours_minutes_to_minutes(time: str) -> int:
+def convert_hours_minutes_to_seconds(time: str) -> int:
     """
-    Calculates the duration of the provided time in minutes
-
-    `Assumes that the provided time is in HH:MM format`
+    Convert HH:MM string into total seconds.
     """
     hours, minutes = map(int, time.split(":"))
-    return hours * 60 + minutes
+    return hours * 3600 + minutes * 60
 
 
 def create_get_assignment_schema(
@@ -51,7 +49,7 @@ def create_get_assignment_schema(
     assignment_data: dict[str, Any] = {
         "id": assignment.id,
         "title": assignment.title,
-        "max_duration_minutes": assignment.max_duration,
+        "max_duration_minutes": assignment.max_duration // 60,
         "start_time_formatted": format_time(
             time=statistics.start_time, local_time_region=user_time_region
         )
@@ -76,22 +74,34 @@ def create_get_assignment_schema(
 
 def format_time(time: datetime, local_time_region: str) -> str:
     """
-    Converts the given `time` into the provided `local_time_region`, then returns it in HH:MM:SS format
+    Converts a datetime object to a local timezone and returns a string
+    rounded to the nearest second.
     """
     local_time_zone = ZoneInfo(key=local_time_region)
     updated_time = time.astimezone(tz=local_time_zone)
-    return updated_time.strftime("%H:%M:%S")
+    # Calculate total seconds with microseconds
+    total_seconds = (
+        updated_time.hour * 3600
+        + updated_time.minute * 60
+        + updated_time.second
+        + updated_time.microsecond / 1_000_000
+    )
+    rounded_seconds = round(total_seconds)
+    hours = int(rounded_seconds // 3600)
+    minutes = int((rounded_seconds % 3600) // 60)
+    seconds = int(rounded_seconds % 60)
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
 
-def format_time_backwards(time: int) -> str:
+def format_time_backwards(time: float) -> str:
     """
-    Converts the given time to a HH:MM:SS format
-
-    `Assumes that time is in units of seconds`
+    Converts the given elapsed time (in seconds) to an HH:MM:SS string,
+    rounded to the nearest second for a clean display.
     """
-    hours = time // 3600
-    minutes = (time % 3600) // 60
-    seconds = time % 60
+    rounded_time = round(time)
+    hours = int(rounded_time // 3600)
+    minutes = int((rounded_time % 3600) // 60)
+    seconds = int(rounded_time % 60)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
 
@@ -106,29 +116,22 @@ def calculate_start_time() -> datetime:
 
 
 def calculate_estimated_end_time(
-    start_time: datetime, duration: int, duration_unit: str = "minutes"
+    start_time: datetime, duration_seconds: float
 ) -> datetime:
     """
-    Calculates the assignments estimated end time.
-    `Formula: start_time + duration`
+    Calculates the estimated end time of an assignment.
 
     Args:
-        start_time (datetime): Start time in datetime object
-        duration (int): Assignment duration
-        duration_unit (str): Duration unit - Must be either minutes or seconds, defaults to minutes
+        start_time (datetime): Assignment start time (UTC).
+        duration_seconds (int): Assignment duration in seconds.
 
     Returns:
-        datetime: Datetime stored in UTC
-
+        datetime: Estimated end time in UTC.
     """
-    match duration_unit.lower():
-        case "seconds":
-            return start_time + timedelta(seconds=duration)
-        case _:
-            return start_time + timedelta(minutes=duration)
+    return start_time + timedelta(seconds=duration_seconds)
 
 
-def calculate_elapsed_time(start_time: datetime) -> int:
+def calculate_elapsed_time(start_time: datetime) -> float:
     """
     Calculates the assignments current elapsed time.
     `Formula: current time - start time`
@@ -141,17 +144,18 @@ def calculate_elapsed_time(start_time: datetime) -> int:
     """
     current_time = datetime.now(tz=timezone.utc)
     time_difference: timedelta = current_time - start_time
-    return int(time_difference.total_seconds())
+    return time_difference.total_seconds()
 
 
-def calculate_remaining_time(max_duration: int, elapsed_duration: int) -> int:
+def calculate_remaining_time_for_pause(
+    max_duration_seconds: float, elapsed_duration_seconds: float
+) -> float:
     """
     Calculates the assignments remaining time.
 
-    `Formula: max_duration (minutes) - elapsed_duration(seconds converted  to minutes)`
+    `Formula: max_duration (seconds) - elapsed_duration(seconds`
 
     Returns:
-        int - Remaining duration in minutes
-
+        float - Remaining duration in seconds
     """
-    return max_duration - int(elapsed_duration / 60)
+    return max_duration_seconds - elapsed_duration_seconds

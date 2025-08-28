@@ -4,7 +4,7 @@ This module stores the database models for this project
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from sqlalchemy.sql import func
 
@@ -46,7 +46,7 @@ class Assignment(BaseClass):
     __tablename__ = "assignments"
 
     title: Mapped[str] = mapped_column(String(length=50), nullable=False)
-    max_duration: Mapped[int] = mapped_column(Integer, nullable=False)  # In Minutes
+    max_duration: Mapped[int] = mapped_column(Integer, nullable=False)  # In Seconds
     is_started: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_paused: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_complete: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -97,11 +97,20 @@ class AssignmentStatistic(BaseClass):
     start_time: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    elapsed_time: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, default=0
+    elapsed_time: Mapped[float | None] = mapped_column(
+        Float, nullable=True, default=0
     )  # In Seconds
     end_time: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
+    )
+    last_paused_time: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
+    last_resumed_time: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
+    remaining_seconds: Mapped[float | None] = mapped_column(
+        Float, nullable=True, default=None
     )
     pause_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     assignment_id: Mapped[int] = mapped_column(
