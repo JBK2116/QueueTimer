@@ -6,6 +6,7 @@ class QueueTimer {
     this.timerInterval = null;
     this.startTime = null;
     this.isPaused = false;
+    this.pauseStartTime = null; // Tracking pauses
     this.maxDurationMinutes = null; // Store max duration for auto-completion
     this.localElapsedSeconds = 0; // Track elapsed time locally
     this.audioContext = null; // Web Audio context (initialized on first user gesture)
@@ -249,10 +250,12 @@ class QueueTimer {
         "POST"
       );
       this.isPaused = true;
+      this.pauseStartTime = Date.now();
+      this.currentAssignment.pause_count += 1;
       document.getElementById("pause-btn").classList.add("hidden");
       document.getElementById("resume-btn").classList.remove("hidden");
       document.getElementById("pause-count").textContent =
-        this.currentAssignment.pause_count + 1;
+      this.currentAssignment.pause_count;
       // Local elapsed time tracking continues to work correctly when paused
     } catch (error) {
       const errorMessage = error.message || "Failed to pause assignment";
@@ -267,6 +270,11 @@ class QueueTimer {
         `/assignments/resume/${this.currentAssignment.id}/`,
         "POST"
       );
+      if (this.pauseStartTime) {
+        const pauseDuration = Date.now() - this.pauseStartTime;
+        this.startTime = new Date(this.startTime.getTime() + pauseDuration);
+        this.pauseStartTime = null; // Reset for the next pause
+      }
       this.isPaused = false;
       document.getElementById("pause-btn").classList.remove("hidden");
       document.getElementById("resume-btn").classList.add("hidden");
