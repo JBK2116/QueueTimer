@@ -3,7 +3,7 @@ This module stores the routers for the main timer endpoints
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from datetime import timezone as tzone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -35,11 +35,11 @@ async def create_assignment(
             status_code=status.HTTP_400_BAD_REQUEST, detail="User not found"
         )
 
-    minute_duration: int = services.convert_hours_minutes_to_minutes(data.duration)
+    max_duration_seconds: int = services.convert_hours_minutes_to_seconds(data.duration)
 
     try:
         assignment = Assignment(
-            title=data.title, max_duration=minute_duration, user_id=user.id
+            title=data.title, max_duration=max_duration_seconds, user_id=user.id
         )
         assignment_statistics = AssignmentStatistic(
             start_time=None,  # set when assignment starts
@@ -236,20 +236,20 @@ async def start_assignment(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Assignment has already been completed",
         )
-    start_time = services.calculate_start_time()
+    assignment_start_time = services.calculate_start_time()
     estimated_end_time = services.calculate_estimated_end_time(
-        start_time=start_time,
-        duration=assignment.max_duration,
-        duration_unit="minutes",
+        start_time=assignment_start_time, duration_seconds=assignment.max_duration
     )
 
     assignment.is_started = True
-    assignment.assignment_statistics.start_time = start_time
+    assignment.assignment_statistics.start_time = assignment_start_time
     db_session.add(assignment)
     db_session.add(assignment.assignment_statistics)
     await db_session.commit()
     return schemas.StartAssignment(
-        start_time=services.format_time(time=start_time, local_time_region=timezone),
+        start_time=services.format_time(
+            time=assignment_start_time, local_time_region=timezone
+        ),
         estimated_end_time=services.format_time(
             time=estimated_end_time, local_time_region=timezone
         ),
@@ -296,9 +296,14 @@ async def pause_assignment(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Assignment has already been completed",
         )
-    if not isinstance(assignment.assignment_statistics.start_time, datetime):
+
+    last_active_start_time = (
+        assignment.assignment_statistics.last_resumed_time
+        or assignment.assignment_statistics.start_time
+    )
+    if not isinstance(last_active_start_time, datetime):
         log.exception(
-            msg="Attempted to calculate elapsed time but assignment start time is not a date time object",
+            msg="Attempted to pause but last active start time is not a datetime object.",
             extra={
                 "assignment_id": assignment.id,
                 "assignment_statistics_id": assignment.assignment_statistics.id,
@@ -306,20 +311,34 @@ async def pause_assignment(
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error occurred calculating start time",
+            detail="Error occurred calculating pause time.",
         )
 
-    elapsed_time: int = services.calculate_elapsed_time(
-        start_time=assignment.assignment_statistics.start_time
+    # Calculate the duration of the most recent active run
+    current_run_duration_seconds = (
+        datetime.now(tz=tzone.utc) - last_active_start_time
+    ).total_seconds()
+
+    previously_elapsed_seconds = assignment.assignment_statistics.elapsed_time or 0.0
+    total_elapsed_seconds = previously_elapsed_seconds + current_run_duration_seconds
+
+    remaining_time_seconds = services.calculate_remaining_time_for_pause(
+        max_duration_seconds=float(assignment.max_duration),
+        elapsed_duration_seconds=total_elapsed_seconds,
     )
+
     assignment.is_paused = True
-    assignment.assignment_statistics.elapsed_time = elapsed_time
+    assignment.assignment_statistics.elapsed_time = total_elapsed_seconds
+    assignment.assignment_statistics.remaining_seconds = remaining_time_seconds
+    assignment.assignment_statistics.last_paused_time = datetime.now(tz=tzone.utc)
     assignment.assignment_statistics.pause_count += 1
+
     db_session.add(assignment)
     db_session.add(assignment.assignment_statistics)
     await db_session.commit()
+
     return schemas.PauseAssignmentResult(
-        elapsed_time=services.format_time_backwards(elapsed_time)
+        elapsed_time=services.format_time_backwards(total_elapsed_seconds)
     )
 
 
@@ -363,9 +382,9 @@ async def resume_assignment(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Assignment has already been completed",
         )
-    if not isinstance(assignment.assignment_statistics.elapsed_time, int):
+    if not isinstance(assignment.assignment_statistics.elapsed_time, float):
         logging.exception(
-            msg="Attempted to calculate remaining time but assignments elapsed time is not an integer",
+            msg="Attempted to calculate remaining time but assignments elapsed time is not an float",
             extra={
                 "assignment_id": assignment.id,
                 "assignment_statistics_id": assignment.assignment_statistics.id,
@@ -376,17 +395,27 @@ async def resume_assignment(
             detail="Error calculating remaining time",
         )
 
-    remaining_time_minutes: int = services.calculate_remaining_time(
-        max_duration=assignment.max_duration,
-        elapsed_duration=assignment.assignment_statistics.elapsed_time,
-    )
+    if not isinstance(assignment.assignment_statistics.remaining_seconds, float):
+        logging.exception(
+            msg="Attempted to calculate assignments new end time but assignments remaining minutes is not an float",
+            extra={
+                "assignment_id": assignment.id,
+                "assignment_statistics_id": assignment.assignment_statistics.id,
+            },
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error calculating remaining time",
+        )
+
     new_estimated_end_time: datetime = services.calculate_estimated_end_time(
         start_time=datetime.now(tz=tzone.utc),
-        duration=remaining_time_minutes,
-        duration_unit="minutes",
+        duration_seconds=assignment.assignment_statistics.remaining_seconds,
     )
+    assignment.assignment_statistics.last_resumed_time = datetime.now(tz=tzone.utc)
     assignment.is_paused = False
     db_session.add(assignment)
+    db_session.add(assignment.assignment_statistics)
     await db_session.commit()
     return schemas.ResumeAssignmentResult(
         new_end_time=services.format_time(
@@ -409,21 +438,23 @@ async def complete_assignment(
     )
     assignment = assignment_query.scalar_one_or_none()
     if not assignment:
-        raise HTTPException(status_code=404, detail="Assignment Not Found")
-
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Assignment Not Found"
+        )
     if not assignment.is_started:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Assignment hasn't been started yet",
         )
-    elif assignment.is_complete:
+    if assignment.is_complete:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Assignment has already been completed",
         )
-    if not isinstance(assignment.assignment_statistics.start_time, datetime):
+    start_time = assignment.assignment_statistics.start_time
+    if not isinstance(start_time, datetime):
         log.exception(
-            msg="Attempted to calculate final elapsed time but assignment start time is not a date time object",
+            msg="Assignment start_time is invalid",
             extra={
                 "assignment_id": assignment.id,
                 "assignment_statistics_id": assignment.assignment_statistics.id,
@@ -431,16 +462,63 @@ async def complete_assignment(
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error occurred calculating start time",
+            detail="Error calculating start time",
         )
 
-    final_elapsed_time = services.calculate_elapsed_time(
-        start_time=assignment.assignment_statistics.start_time
-    )
+    now = datetime.now(tz=tzone.utc)
+    total_elapsed = assignment.assignment_statistics.elapsed_time or 0.0
+    if not assignment.is_paused:
+        last_active_start = (
+            assignment.assignment_statistics.last_resumed_time
+            or assignment.assignment_statistics.start_time
+        )
+        total_elapsed += (now - last_active_start).total_seconds()  # type: ignore -> last active start is guarenteed to exist by now
+
+    # CASE 1: Auto-completed: total time >= max duration
+    if total_elapsed >= assignment.max_duration:
+        final_elapsed_time = assignment.max_duration
+        if assignment.is_paused:
+            end_time = assignment.assignment_statistics.last_paused_time
+        else:
+            # Back-calculate when it should have completed
+            excess_time = total_elapsed - assignment.max_duration
+            end_time = now - timedelta(seconds=excess_time)
+
+    # CASE 2: Never paused + manual completion
+    elif not assignment.assignment_statistics.last_paused_time:
+        final_elapsed_time = min(
+            round((now - start_time).total_seconds()),
+            assignment.max_duration,
+        )
+        end_time = now
+
+    # CASE 3: Paused + manual completion
+    else:
+        if assignment.is_paused:
+            # Still paused - use elapsed time from when it was paused
+            final_elapsed_time = assignment.assignment_statistics.elapsed_time
+            end_time = assignment.assignment_statistics.last_paused_time
+        else:
+            # Was resumed after pause - add time since resume
+            paused_elapsed_time = assignment.assignment_statistics.elapsed_time
+            last_resumed_time = assignment.assignment_statistics.last_resumed_time
+
+            if last_resumed_time:
+                time_since_resume = (now - last_resumed_time).total_seconds()
+                final_elapsed_time = min(
+                    paused_elapsed_time + time_since_resume,  # type: ignore
+                    assignment.max_duration,
+                )
+            else:
+                # somehow not paused but no resume time
+                final_elapsed_time = paused_elapsed_time
+
+            end_time = now
     assignment.is_paused = False
     assignment.is_complete = True
     assignment.assignment_statistics.elapsed_time = final_elapsed_time
-    assignment.assignment_statistics.end_time = datetime.now(tz=tzone.utc)
+    assignment.assignment_statistics.end_time = end_time
+
     db_session.add(assignment)
     db_session.add(assignment.assignment_statistics)
     await db_session.commit()
